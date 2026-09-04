@@ -16,23 +16,25 @@ function load_spec_tests(
     baml.json.from_string<SpecExample[]>(baml.fs.read(spec_tests_path()))
 }
 
-function examples_in(section: string) -> SpecExample[] {
+function examples_in(
+    section: string,
+) -> SpecExample[] throws baml.errors.Io | baml.errors.ParseError | baml.json.JsonParseError | baml.json.JsonDecodeError {
     load_spec_tests().filter((t) -> {
         t.section == section
-    }) catch_all (e) {
-        _ => []
-    }
+    })
 }
 
-function spec_example(n: int) -> SpecExample? {
+function spec_example(
+    n: int,
+) -> SpecExample? throws baml.errors.Io | baml.errors.ParseError | baml.json.JsonParseError | baml.json.JsonDecodeError {
     load_spec_tests().find((t) -> {
         t.example == n
-    }) catch_all (e) {
-        _ => null
-    }
+    })
 }
 
-function spec_failures(section: string) -> int {
+function spec_failures(
+    section: string,
+) -> int throws baml.errors.Io | baml.errors.ParseError | baml.json.JsonParseError | baml.json.JsonDecodeError {
     let n = 0;
     for (let t in examples_in(section)) {
         if (root.to_html(t.markdown) != t.html) {
@@ -42,7 +44,9 @@ function spec_failures(section: string) -> int {
     n
 }
 
-function assert_spec_examples(nums: int[]) -> void {
+function assert_spec_examples(
+    nums: int[],
+) -> void throws baml.errors.Io | baml.errors.ParseError | baml.json.JsonParseError | baml.json.JsonDecodeError {
     for (let n in nums) {
         let t = spec_example(n);
         if let ex: SpecExample = t {
