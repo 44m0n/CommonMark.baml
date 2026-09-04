@@ -140,6 +140,7 @@ test "fenced code spec examples that do not need later constructs" {
             125,
             126,
             127,
+            128,
             129,
             130,
             131,

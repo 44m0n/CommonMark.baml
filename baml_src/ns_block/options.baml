@@ -36,6 +36,7 @@ class ParseOptions {
 function commonmark_options() -> ParseOptions {
     ParseOptions {
         block_starts: [
+            BlockQuoteStart {  },
             AtxHeadingStart {  },
             FencedCodeStart {  },
             SetextHeadingStart {  },

@@ -68,6 +68,21 @@ function open_fenced_code(fence_char: string, fence_length: int, fence_offset: i
     o
 }
 
+function open_block_quote() -> Open {
+    let children: root.ast.Block[] = [];
+    Open {
+        type_name: "block_quote",
+        ops: BlockQuoteOps {  },
+        ast: root.ast.BlockQuote { children: children },
+        children: children,
+        string_content: "",
+        is_fenced: false,
+        fence_char: "",
+        fence_length: 0,
+        fence_offset: 0,
+    }
+}
+
 function strip_final_newline(s: string) -> string {
     if (s.ends_with("\n")) {
         s.slice(0, s.length() - 1)
@@ -82,6 +97,41 @@ class DocumentOps {
             let _ = parser;
             let _ = open;
             ContinueResult.Ok
+        }
+
+        function finalize(self, parser: Parser, open: Open) -> void throws never {
+            let _ = parser;
+            let _ = open;
+        }
+
+        function can_contain(self, child_name: string) -> bool throws never {
+            child_name != "item"
+        }
+
+        function accepts_lines(self) -> bool throws never {
+            false
+        }
+
+        function is_interruptible(self) -> bool throws never {
+            false
+        }
+
+        function allows_lazy(self) -> bool throws never {
+            false
+        }
+    }
+}
+
+class BlockQuoteOps {
+    implements BlockOps {
+        function continue_line(self, parser: Parser, open: Open) -> ContinueResult throws never {
+            let _ = open;
+            if (!parser.indented && parser.scan.line.at(parser.next_nonspace) == ">") {
+                consume_quote_marker(parser);
+                ContinueResult.Ok
+            } else {
+                ContinueResult.Stop
+            }
         }
 
         function finalize(self, parser: Parser, open: Open) -> void throws never {

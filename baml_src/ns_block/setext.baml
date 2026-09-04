@@ -92,6 +92,6 @@ test "multiline paragraph becomes one setext heading" {
 
 test "setext heading spec examples that do not need later constructs" {
     root.spec.assert_spec_examples(
-        [83, 84, 85, 86, 87, 88, 89, 90, 95, 96, 97, 98, 100, 103, 104, 105],
+        [83, 84, 85, 86, 87, 88, 89, 90, 92, 93, 95, 96, 97, 98, 100, 101, 103, 104, 105],
     )
 }
