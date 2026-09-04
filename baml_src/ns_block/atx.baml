@@ -118,5 +118,5 @@ test "atx interrupts a paragraph" {
 }
 
 test "atx heading spec examples that do not need later constructs" {
-    root.spec.assert_spec_examples([62, 63, 64, 67, 68, 69, 70, 71, 72, 73, 74, 75, 77, 78, 79])
+    root.spec.assert_spec_examples([62, 63, 64, 65, 67, 68, 69, 70, 71, 72, 73, 74, 75, 77, 78, 79])
 }

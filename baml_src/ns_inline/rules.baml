@@ -4,5 +4,5 @@ interface InlineParseRule {
 }
 
 function commonmark_inline_rules() -> InlineParseRule[] {
-    []
+    [BackslashRule {  }]
 }

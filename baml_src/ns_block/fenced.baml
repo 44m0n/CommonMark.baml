@@ -96,7 +96,7 @@ function fenced_info_and_literal(content: string) -> root.ast.CodeBlock {
     if (nl == null) {
         root.ast.CodeBlock {
             fenced: true,
-            info: content.trim(),
+            info: root.block.unescape_string(content.trim()),
             literal: "",
             last_line_blank: false,
         }
@@ -105,7 +105,7 @@ function fenced_info_and_literal(content: string) -> root.ast.CodeBlock {
         let rest = content.slice(nl + 1, content.length());
         root.ast.CodeBlock {
             fenced: true,
-            info: first.trim(),
+            info: root.block.unescape_string(first.trim()),
             literal: rest,
             last_line_blank: false,
         }
