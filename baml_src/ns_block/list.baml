@@ -190,23 +190,31 @@ class ListOps {
     }
 }
 
+function item_continue(parser: Parser, open: Open) -> ContinueResult {
+    let data = open.list_data;
+    if (data == null) {
+        return ContinueResult.Stop;
+    }
+    let needed = data.marker_offset + data.padding;
+    if (parser.blank) {
+        if (open.children.length() == 0) {
+            ContinueResult.Stop
+        } else {
+            parser.advance_next_nonspace();
+            ContinueResult.Ok
+        }
+    } else if (parser.indent >= needed) {
+        parser.advance_offset(needed, true);
+        ContinueResult.Ok
+    } else {
+        ContinueResult.Stop
+    }
+}
+
 class ItemOps {
     implements BlockOps {
         function continue_line(self, parser: Parser, open: Open) -> ContinueResult throws never {
-            let data = open.list_data;
-            if (data == null) {
-                return ContinueResult.Stop;
-            }
-            let needed = data.marker_offset + data.padding;
-            if (parser.indent >= needed) {
-                parser.advance_offset(needed, true);
-                ContinueResult.Ok
-            } else if (parser.blank && open.children.length() > 0) {
-                parser.advance_next_nonspace();
-                ContinueResult.Ok
-            } else {
-                ContinueResult.Stop
-            }
+            item_continue(parser, open)
         }
 
         function finalize(self, parser: Parser, open: Open) -> void throws never {
@@ -456,4 +464,8 @@ test "list item spec" {
 
 test "lists spec" {
     assert.equal(root.spec.spec_failures("Lists"), 0)
+}
+
+test "empty list item cannot continue after a blank line" {
+    assert.equal(root.to_html("-\n \n foo\n"), "<ul>\n<li></li>\n</ul>\n<p>foo</p>\n")
 }
