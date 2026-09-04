@@ -22,7 +22,7 @@ printf '%s\n' '# Hi' | ./bamark
 # <h1>Hi</h1>
 ```
 
-`bamark` reads all of stdin as Markdown and writes raw HTML (not JSON). That matches `spec_tests.py --program`.
+`bamark` reads all of stdin as Markdown and writes raw HTML (not JSON). That matches `spec_tests.py --program`. It reads `/dev/stdin`, which is the portable path on Unix and on Windows Git Bash / WSL.
 
 `baml run to_html -- --markdown '# Hi'` is fine for debugging; it JSON-quotes the string.
 
