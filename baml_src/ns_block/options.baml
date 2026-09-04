@@ -24,13 +24,9 @@ interface BlockOps {
   function allows_lazy(self) -> bool throws never
 }
 
-interface InlineRule {
-  function name(self) -> string throws never
-}
-
 class ParseOptions {
     block_starts: BlockStart[],
-    inline_rules: InlineRule[],
+    inline_rules: root.inline.InlineParseRule[],
 }
 
 function commonmark_options() -> ParseOptions {
@@ -45,6 +41,6 @@ function commonmark_options() -> ParseOptions {
             ListItemStart {  },
             IndentedCodeStart {  },
         ],
-        inline_rules: [],
+        inline_rules: root.inline.commonmark_inline_rules(),
     }
 }

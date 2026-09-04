@@ -261,12 +261,16 @@ function parse_document(markdown: string, options: ParseOptions) -> root.ast.Doc
     while (p.stack.length() > 0) {
         p.finalize_tip();
     }
-    parse_inlines_tree(document, entities = entities);
+    parse_inlines_tree(document, entities = entities, options = options);
     document
 }
 
-function parse_inlines_tree(document: root.ast.Document, entities: map<string, string>) -> void {
-    let rules = root.inline.commonmark_inline_rules();
+function parse_inlines_tree(
+    document: root.ast.Document,
+    entities: map<string, string>,
+    options: ParseOptions,
+) -> void {
+    let rules = options.inline_rules;
     let work: root.ast.Block[] = [];
     for (let b in document.children) {
         work.push(b);

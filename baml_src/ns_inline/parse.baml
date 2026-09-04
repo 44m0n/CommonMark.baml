@@ -37,7 +37,7 @@ function first_special_index(s: string) -> int {
     consider_index(s.index_of("\n"), best)
 }
 
-function consume_plain_text(s: Subject) -> void {
+function consume_plain_text(s: Subject, extra: string) -> void {
     let line = s.scan.line;
     let start = s.scan.pos;
     let n = line.length();
@@ -48,39 +48,29 @@ function consume_plain_text(s: Subject) -> void {
     }
     while (i < probe) {
         let c = line.at(i) ?? "";
-        if (is_inline_special(c)) {
+        if (is_inline_special(c) || (extra.length() > 0 && extra.includes(c))) {
             break;
         }
         i += 1;
     }
-    if (i < n && i == probe && !is_inline_special(line.at(i) ?? "")) {
-        let extra = first_special_index(line.slice(i, n));
-        i += extra;
+    if (
+        i < n
+            && i == probe
+            && !is_inline_special(line.at(i) ?? "")
+            && !(extra.length() > 0 && extra.includes(line.at(i) ?? ""))
+    ) {
+        let rest = line.slice(i, n);
+        let skip = first_special_index(rest);
+        let j = 0;
+        while (j < extra.length()) {
+            skip = consider_index(rest.index_of(extra.at(j) ?? ""), skip);
+            j += 1;
+        }
+        i += skip;
     }
     if (i > start) {
         push_text(s, line.slice(start, i));
         s.scan.pos = i;
-    }
-}
-
-function try_inline_special(s: Subject, ch: string) -> bool {
-    match (ch) {
-        "\\" => BackslashRule {  }.parse(s),
-        "\n" => NewlineRule {  }.parse(s),
-        "`" => CodeSpanRule {  }.parse(s),
-        "&" => EntityRule {  }.parse(s),
-        "<" => {
-            if (AutolinkRule {  }.parse(s)) {
-                true
-            } else {
-                HtmlInlineRule {  }.parse(s)
-            }
-        },
-        "!" => BangRule {  }.parse(s),
-        "[" => OpenBracketRule {  }.parse(s),
-        "]" => CloseBracketRule {  }.parse(s),
-        "*" | "_" => EmphasisRule {  }.parse(s),
-        _ => false,
     }
 }
 
@@ -93,22 +83,7 @@ function parse_inlines(
     let s = subject(raw);
     s.refs = refs;
     s.entities = entities;
-    let _ = rules;
-    while (!is_eof(s)) {
-        let ch = peek(s) ?? "";
-        if (!is_inline_special(ch)) {
-            consume_plain_text(s);
-            continue;
-        }
-        let matched = try_inline_special(s, ch);
-        if (!matched) {
-            let start = pos(s);
-            let _ = bump(s);
-            push_text(s, s.scan.line.slice(start, pos(s)));
-        }
-    }
-    let _ = trim_trailing_spaces(s);
-    process_emphasis(s, 0);
+    run_inline_parse(s, rules);
     flatten_inlines(s)
 }
 
@@ -132,6 +107,60 @@ test "backslash unescapes ascii punctuation" {
 
 test "commonmark_inline_rules includes leaf inline rules" {
     assert.equal(commonmark_inline_rules().length(), 10)
+}
+
+class PercentSpanRule {
+    implements InlineParseRule {
+        function name(self) -> string throws never {
+            "percent_span"
+        }
+
+        function triggers(self) -> string[] throws never {
+            ["%"]
+        }
+
+        function parse(self, s: Subject) -> bool throws never {
+            if (peek(s) != "%") {
+                return false;
+            }
+            let start = pos(s);
+            let _ = bump(s);
+            let i = pos(s);
+            let line = s.scan.line;
+            while (i < line.length()) {
+                if (line.at(i) == "%") {
+                    let inner = line.slice(pos(s), i);
+                    advance_to(s, i + 1);
+                    push_node(s, root.ast.HtmlInline { literal: "<span>" });
+                    push_text(s, inner);
+                    push_node(s, root.ast.HtmlInline { literal: "</span>" });
+                    return true;
+                }
+                i += 1;
+            }
+            advance_to(s, start);
+            false
+        }
+    }
+}
+
+test "extra inline rule is unused without options" {
+    assert.equal(root.to_html("hello %x%"), "<p>hello %x%</p>\n")
+}
+
+test "extra inline rule matches a new trigger" {
+    let options = root.block.commonmark_options();
+    options.inline_rules.push(PercentSpanRule {  });
+    assert.equal(
+        root.to_html("hello %x% *y*", options = options),
+        "<p>hello <span>x</span> <em>y</em></p>\n",
+    )
+}
+
+test "unclosed extra trigger stays text" {
+    let options = root.block.commonmark_options();
+    options.inline_rules.push(PercentSpanRule {  });
+    assert.equal(root.to_html("a %b", options = options), "<p>a %b</p>\n")
 }
 
 test "backslash spec" {
