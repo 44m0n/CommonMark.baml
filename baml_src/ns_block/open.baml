@@ -309,7 +309,7 @@ class HeadingOps {
         }
 
         function finalize(self, parser: Parser, open: Open) -> void throws never {
-            let raw = content_text(open).trim();
+            let raw = root.scan.trim_space_tab(strip_final_newline(content_text(open)));
             if let h: root.ast.Heading = open.ast {
                 h.raw = raw;
             }

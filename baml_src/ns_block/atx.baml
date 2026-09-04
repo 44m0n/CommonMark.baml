@@ -120,3 +120,7 @@ test "atx interrupts a paragraph" {
 test "atx heading spec" {
     assert.equal(root.spec.spec_failures("ATX headings"), 0)
 }
+
+test "atx heading trims only spaces and tabs" {
+    assert.equal(root.to_html("# foo\u{00A0}\n"), "<h1>foo\u{00A0}</h1>\n")
+}

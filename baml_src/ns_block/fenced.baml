@@ -99,7 +99,7 @@ function fenced_info_and_literal(
     if (nl == null) {
         root.ast.CodeBlock {
             fenced: true,
-            info: root.block.unescape_string(content.trim(), table = table),
+            info: root.block.unescape_string(root.scan.trim_space_tab(content), table = table),
             literal: "",
             last_line_blank: false,
         }
@@ -108,7 +108,7 @@ function fenced_info_and_literal(
         let rest = content.slice(nl + 1, content.length());
         root.ast.CodeBlock {
             fenced: true,
-            info: root.block.unescape_string(first.trim(), table = table),
+            info: root.block.unescape_string(root.scan.trim_space_tab(first), table = table),
             literal: rest,
             last_line_blank: false,
         }

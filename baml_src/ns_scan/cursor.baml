@@ -59,6 +59,18 @@ function is_space_or_tab(ch: string) -> bool {
     ch == " " || ch == "\t"
 }
 
+function trim_space_tab(s: string) -> string {
+    let start = 0;
+    let end = s.length();
+    while (start < end && is_space_or_tab(s.at(start) ?? "")) {
+        start += 1;
+    }
+    while (end > start && is_space_or_tab(s.at(end - 1) ?? "")) {
+        end -= 1;
+    }
+    s.slice(start, end)
+}
+
 function is_ascii_punctuation(ch: string) -> bool {
     let code = ch.code_point_at(0) ?? -1;
     (code >= 0x21 && code <= 0x2F)
