@@ -494,6 +494,8 @@ test "lists spec examples that do not need html blocks or link refs" {
             305,
             306,
             307,
+            308,
+            309,
             310,
             311,
             312,

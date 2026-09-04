@@ -39,6 +39,7 @@ function commonmark_options() -> ParseOptions {
             BlockQuoteStart {  },
             AtxHeadingStart {  },
             FencedCodeStart {  },
+            HtmlBlockStart {  },
             SetextHeadingStart {  },
             ThematicBreakStart {  },
             ListItemStart {  },

@@ -191,6 +191,7 @@ class Parser {
             let t = self.tip();
             if (t.ops.accepts_lines()) {
                 self.add_line();
+                maybe_close_html_block(self);
             } else if (self.scan.pos < self.scan.line.length() && !self.blank) {
                 self.push_child(open_paragraph());
                 self.advance_next_nonspace();
