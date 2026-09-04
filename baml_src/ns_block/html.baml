@@ -309,6 +309,12 @@ function ascii_starts_with_ci(s: string, prefix: string) -> bool {
     true
 }
 
+function type7_open_tag_ok(s: string) -> bool {
+    let name = read_html_tag_name(s, 1) ?? "";
+    let n = name.to_lower_case();
+    n != "script" && n != "pre" && n != "style" && n != "textarea"
+}
+
 function html_block_type(s: string, allow_type7: bool) -> int? {
     if (s.at(0) != "<") {
         return null;
@@ -358,11 +364,12 @@ function html_block_type(s: string, allow_type7: bool) -> int? {
     }
     if (allow_type7) {
         let end = parse_open_tag(s, 0);
+        let opened = end != null;
         if (end == null) {
             end = parse_close_tag(s, 0);
         }
         if (end != null) {
-            if (rest_only_space_tab(s, end)) {
+            if (rest_only_space_tab(s, end) && (!opened || type7_open_tag_ok(s))) {
                 return 7;
             }
         }
@@ -448,4 +455,9 @@ test "html block type 7 does not interrupt a paragraph" {
 
 test "html block spec" {
     assert.equal(root.spec.spec_failures("HTML blocks"), 0)
+}
+
+test "html type 7 excludes script pre style textarea open tags" {
+    assert.equal(root.to_html("<script/>\n"), "<p><script/></p>\n");
+    assert.equal(root.to_html("<pre/>\n"), "<p><pre/></p>\n")
 }
