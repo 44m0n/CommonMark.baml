@@ -7,8 +7,20 @@ class ListData {
     marker_offset: int,
 }
 
+enum OpenKind {
+    Document,
+    Paragraph,
+    Heading,
+    ThematicBreak,
+    CodeBlock,
+    HtmlBlock,
+    BlockQuote,
+    List,
+    Item,
+}
+
 class Open {
-    type_name: string,
+    type_name: OpenKind,
     ops: BlockOps,
     ast: (root.ast.Block | root.ast.ListItem)?,
     children: root.ast.Block[],
@@ -24,7 +36,7 @@ class Open {
 }
 
 function make_open(
-    type_name: string,
+    type_name: OpenKind,
     ops: BlockOps,
     ast: (root.ast.Block | root.ast.ListItem)?,
 ) -> Open {
@@ -48,7 +60,7 @@ function make_open(
 
 function make_document_open(doc: root.ast.Document) -> Open {
     Open {
-        type_name: "document",
+        type_name: OpenKind.Document,
         ops: DocumentOps {  },
         ast: null,
         children: doc.children,
@@ -66,19 +78,23 @@ function make_document_open(doc: root.ast.Document) -> Open {
 
 function open_paragraph() -> Open {
     make_open(
-        "paragraph",
+        OpenKind.Paragraph,
         ParagraphOps {  },
         root.ast.Paragraph { raw: "", children: [], last_line_blank: false },
     )
 }
 
 function open_thematic_break() -> Open {
-    make_open("thematic_break", ThematicBreakOps {  }, root.ast.ThematicBreak { last_line_blank: false })
+    make_open(
+        OpenKind.ThematicBreak,
+        ThematicBreakOps {  },
+        root.ast.ThematicBreak { last_line_blank: false },
+    )
 }
 
 function open_heading(level: int) -> Open {
     make_open(
-        "heading",
+        OpenKind.Heading,
         HeadingOps {  },
         root.ast.Heading {
             level: level,
@@ -92,7 +108,7 @@ function open_heading(level: int) -> Open {
 
 function open_indented_code() -> Open {
     make_open(
-        "code_block",
+        OpenKind.CodeBlock,
         CodeBlockOps {  },
         root.ast.CodeBlock { fenced: false, info: "", literal: "", last_line_blank: false },
     )
@@ -100,7 +116,7 @@ function open_indented_code() -> Open {
 
 function open_fenced_code(fence_char: string, fence_length: int, fence_offset: int) -> Open {
     let o = make_open(
-        "code_block",
+        OpenKind.CodeBlock,
         CodeBlockOps {  },
         root.ast.CodeBlock { fenced: true, info: "", literal: "", last_line_blank: false },
     );
@@ -114,7 +130,7 @@ function open_fenced_code(fence_char: string, fence_length: int, fence_offset: i
 function open_block_quote() -> Open {
     let children: root.ast.Block[] = [];
     Open {
-        type_name: "block_quote",
+        type_name: OpenKind.BlockQuote,
         ops: BlockQuoteOps {  },
         ast: root.ast.BlockQuote { children: children, last_line_blank: false },
         children: children,
@@ -173,8 +189,8 @@ class DocumentOps {
             let _ = open;
         }
 
-        function can_contain(self, child_name: string) -> bool throws never {
-            child_name != "item"
+        function can_contain(self, child: OpenKind) -> bool throws never {
+            child != OpenKind.Item
         }
 
         function accepts_lines(self) -> bool throws never {
@@ -208,8 +224,8 @@ class BlockQuoteOps {
             let _ = open;
         }
 
-        function can_contain(self, child_name: string) -> bool throws never {
-            child_name != "item"
+        function can_contain(self, child: OpenKind) -> bool throws never {
+            child != OpenKind.Item
         }
 
         function accepts_lines(self) -> bool throws never {
@@ -249,8 +265,8 @@ class ParagraphOps {
             }
         }
 
-        function can_contain(self, child_name: string) -> bool throws never {
-            let _ = child_name;
+        function can_contain(self, child: OpenKind) -> bool throws never {
+            let _ = child;
             false
         }
 
@@ -281,8 +297,8 @@ class ThematicBreakOps {
             let _ = open;
         }
 
-        function can_contain(self, child_name: string) -> bool throws never {
-            let _ = child_name;
+        function can_contain(self, child: OpenKind) -> bool throws never {
+            let _ = child;
             false
         }
 
@@ -315,8 +331,8 @@ class HeadingOps {
             }
         }
 
-        function can_contain(self, child_name: string) -> bool throws never {
-            let _ = child_name;
+        function can_contain(self, child: OpenKind) -> bool throws never {
+            let _ = child;
             false
         }
 
@@ -394,8 +410,8 @@ class CodeBlockOps {
             }
         }
 
-        function can_contain(self, child_name: string) -> bool throws never {
-            let _ = child_name;
+        function can_contain(self, child: OpenKind) -> bool throws never {
+            let _ = child;
             false
         }
 

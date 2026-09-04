@@ -18,7 +18,7 @@ interface BlockStart {
 interface BlockOps {
   function continue_line(self, parser: Parser, open: Open) -> ContinueResult throws never
   function finalize(self, parser: Parser, open: Open) -> void throws never
-  function can_contain(self, child_name: string) -> bool throws never
+  function can_contain(self, child: OpenKind) -> bool throws never
   function accepts_lines(self) -> bool throws never
   function is_interruptible(self) -> bool throws never
   function allows_lazy(self) -> bool throws never

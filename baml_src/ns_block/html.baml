@@ -31,16 +31,17 @@ class HtmlBlockOps {
             let _ = parser;
             if let h: root.ast.HtmlBlock = open.ast {
                 h.html_type = open.html_type;
-                h.literal = if (open.html_type >= 1 && open.html_type <= 5) {
-                    strip_trailing_html_blanks(content_text(open))
-                } else {
-                    content_text(open)
-                };
+                h.literal
+                    = if (open.html_type >= 1 && open.html_type <= 5) {
+                        strip_trailing_html_blanks(content_text(open))
+                    } else {
+                        content_text(open)
+                    };
             }
         }
 
-        function can_contain(self, child_name: string) -> bool throws never {
-            let _ = child_name;
+        function can_contain(self, child: OpenKind) -> bool throws never {
+            let _ = child;
             false
         }
 
@@ -60,7 +61,7 @@ class HtmlBlockOps {
 
 function open_html_block(html_type: int) -> Open {
     let o = make_open(
-        "html_block",
+        OpenKind.HtmlBlock,
         HtmlBlockOps {  },
         root.ast.HtmlBlock { html_type: html_type, literal: "", last_line_blank: false },
     );
@@ -422,7 +423,7 @@ function html_block_closes(html_type: int, line: string) -> bool {
 
 function maybe_close_html_block(parser: Parser) -> void {
     let t = parser.tip();
-    if (t.type_name == "html_block" && t.html_type >= 1 && t.html_type <= 5) {
+    if (t.type_name == OpenKind.HtmlBlock && t.html_type >= 1 && t.html_type <= 5) {
         if (
             html_block_closes(t.html_type, parser.scan.line.slice(parser.scan.pos, parser.scan.line.length()))
         ) {
@@ -444,8 +445,12 @@ class HtmlBlockStart {
             if (parser.scan.line.at(parser.next_nonspace) != "<") {
                 return StartMatch.None;
             }
-            let allow_type7 = parser.last_matched().type_name != "paragraph"
-                && !(!parser.all_closed && !parser.blank && parser.tip().type_name == "paragraph");
+            let allow_type7 = parser.last_matched().type_name != OpenKind.Paragraph
+                && !(
+                    !parser.all_closed
+                        && !parser.blank
+                        && parser.tip().type_name == OpenKind.Paragraph
+                );
             let s = parser.scan.line.slice(parser.next_nonspace, parser.scan.line.length());
             let html_type = html_block_type(s, allow_type7);
             if (html_type == null) {

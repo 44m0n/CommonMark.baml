@@ -9,7 +9,7 @@ class SetextHeadingStart {
                 return StartMatch.None;
             }
             let container = parser.last_matched();
-            if (container.type_name != "paragraph") {
+            if (container.type_name != OpenKind.Paragraph) {
                 return StartMatch.None;
             }
             let level = setext_heading_level(parser.scan.line, parser.next_nonspace);
@@ -64,7 +64,7 @@ function convert_paragraph_to_setext(parser: Parser, para: Open, level: int) -> 
             parent.children[last] = heading;
         }
     }
-    para.type_name = "heading";
+    para.type_name = OpenKind.Heading;
     para.ops = HeadingOps {  };
     para.ast = heading;
 }

@@ -25,7 +25,7 @@ function parse_list_marker(parser: Parser) -> ListData? {
     let line = parser.scan.line;
     let i = parser.next_nonspace;
     let c = line.at(i);
-    let interrupts = parser.last_matched().type_name == "paragraph";
+    let interrupts = parser.last_matched().type_name == OpenKind.Paragraph;
     let marker_len = 0;
     let kind: root.ast.ListKind = root.ast.ListKind.Bullet;
     let start = 1;
@@ -122,7 +122,7 @@ function lists_match(a: ListData?, b: ListData) -> bool {
 function open_list(data: ListData) -> Open {
     let items: root.ast.ListItem[] = [];
     let o = make_open(
-        "list",
+        OpenKind.List,
         ListOps {  },
         root.ast.List {
             kind: data.kind,
@@ -141,7 +141,7 @@ function open_list(data: ListData) -> Open {
 function open_list_item(data: ListData) -> Open {
     let children: root.ast.Block[] = [];
     Open {
-        type_name: "item",
+        type_name: OpenKind.Item,
         ops: ItemOps {  },
         ast: root.ast.ListItem { children: children, last_line_blank: false },
         children: children,
@@ -172,8 +172,8 @@ class ListOps {
             }
         }
 
-        function can_contain(self, child_name: string) -> bool throws never {
-            child_name == "item"
+        function can_contain(self, child: OpenKind) -> bool throws never {
+            child == OpenKind.Item
         }
 
         function accepts_lines(self) -> bool throws never {
@@ -222,8 +222,8 @@ class ItemOps {
             let _ = open;
         }
 
-        function can_contain(self, child_name: string) -> bool throws never {
-            child_name != "item"
+        function can_contain(self, child: OpenKind) -> bool throws never {
+            child != OpenKind.Item
         }
 
         function accepts_lines(self) -> bool throws never {
@@ -248,7 +248,7 @@ class ListItemStart {
 
         function try_open(self, parser: Parser) -> StartMatch throws never {
             let container = parser.last_matched();
-            if (parser.indented && container.type_name != "list") {
+            if (parser.indented && container.type_name != OpenKind.List) {
                 return StartMatch.None;
             }
             let data = parse_list_marker(parser);
@@ -256,7 +256,7 @@ class ListItemStart {
                 return StartMatch.None;
             }
             parser.close_unmatched();
-            if (parser.tip().type_name != "list" || !lists_match(parser.tip().list_data, data)) {
+            if (parser.tip().type_name != OpenKind.List || !lists_match(parser.tip().list_data, data)) {
                 parser.push_child(open_list(data));
             }
             parser.push_child(open_list_item(data));
@@ -335,12 +335,12 @@ function record_last_line_blank(parser: Parser, container: Open, container_index
         mark_last_child_blank(container);
     }
     let ctype = container.type_name;
-    let empty_item = ctype == "item" && container.children.length() == 0;
+    let empty_item = ctype == OpenKind.Item && container.children.length() == 0;
     let last_line_blank = parser.blank
-        && ctype != "block_quote"
-        && ctype != "heading"
-        && ctype != "thematic_break"
-        && !(ctype == "code_block" && container.is_fenced)
+        && ctype != OpenKind.BlockQuote
+        && ctype != OpenKind.Heading
+        && ctype != OpenKind.ThematicBreak
+        && !(ctype == OpenKind.CodeBlock && container.is_fenced)
         && !empty_item;
     container.last_line_blank = last_line_blank;
     let i = 0;
