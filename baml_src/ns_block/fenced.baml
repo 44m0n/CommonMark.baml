@@ -150,5 +150,5 @@ test "closing fence must be at least as long and unindented past three" {
 }
 
 test "fenced code spec" {
-    assert.equal(root.spec.spec_failures("Fenced code blocks"), 0)
+    assert.equal(root.spec.spec_failures("Fenced code blocks"), [])
 }

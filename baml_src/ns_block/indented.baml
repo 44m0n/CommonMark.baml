@@ -32,5 +32,5 @@ test "indented code preserves trailing spaces" {
 }
 
 test "indented code spec" {
-    assert.equal(root.spec.spec_failures("Indented code blocks"), 0)
+    assert.equal(root.spec.spec_failures("Indented code blocks"), [])
 }

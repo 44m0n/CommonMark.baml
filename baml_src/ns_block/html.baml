@@ -482,7 +482,7 @@ test "html block type 7 does not interrupt a paragraph" {
 }
 
 test "html block spec" {
-    assert.equal(root.spec.spec_failures("HTML blocks"), 0)
+    assert.equal(root.spec.spec_failures("HTML blocks"), [])
 }
 
 test "html type 7 excludes script pre style textarea open tags" {

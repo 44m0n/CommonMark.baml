@@ -93,5 +93,5 @@ test "multiline paragraph becomes one setext heading" {
 }
 
 test "setext heading spec" {
-    assert.equal(root.spec.spec_failures("Setext headings"), 0)
+    assert.equal(root.spec.spec_failures("Setext headings"), [])
 }

@@ -299,7 +299,7 @@ test "link definitions cannot interrupt a paragraph" {
 }
 
 test "link reference spec" {
-    assert.equal(root.spec.spec_failures("Link reference definitions"), 0)
+    assert.equal(root.spec.spec_failures("Link reference definitions"), [])
 }
 
 test "reference labels match after unicode case folding" {

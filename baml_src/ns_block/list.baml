@@ -459,11 +459,11 @@ test "tight list item starting with a code span is not preceded by a newline" {
 }
 
 test "list item spec" {
-    assert.equal(root.spec.spec_failures("List items"), 0)
+    assert.equal(root.spec.spec_failures("List items"), [])
 }
 
 test "lists spec" {
-    assert.equal(root.spec.spec_failures("Lists"), 0)
+    assert.equal(root.spec.spec_failures("Lists"), [])
 }
 
 test "empty list item cannot continue after a blank line" {

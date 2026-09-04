@@ -34,14 +34,14 @@ function spec_example(
 
 function spec_failures(
     section: string,
-) -> int throws baml.errors.Io | baml.errors.ParseError | baml.json.JsonParseError | baml.json.JsonDecodeError {
-    let n = 0;
+) -> int[] throws baml.errors.Io | baml.errors.ParseError | baml.json.JsonParseError | baml.json.JsonDecodeError {
+    let failed: int[] = [];
     for (let t in examples_in(section)) {
         if (root.to_html(t.markdown) != t.html) {
-            n += 1
+            let _ = failed.push(t.example);
         }
     }
-    n
+    failed
 }
 
 function assert_spec_examples(

@@ -164,57 +164,57 @@ test "unclosed extra trigger stays text" {
 }
 
 test "backslash spec" {
-    assert.equal(root.spec.spec_failures("Backslash escapes"), 0)
+    assert.equal(root.spec.spec_failures("Backslash escapes"), [])
 }
 
 test "code spans spec" {
-    assert.equal(root.spec.spec_failures("Code spans"), 0)
+    assert.equal(root.spec.spec_failures("Code spans"), [])
 }
 
 test "autolink spec" {
-    assert.equal(root.spec.spec_failures("Autolinks"), 0)
+    assert.equal(root.spec.spec_failures("Autolinks"), [])
 }
 
 test "raw html spec" {
-    assert.equal(root.spec.spec_failures("Raw HTML"), 0)
+    assert.equal(root.spec.spec_failures("Raw HTML"), [])
 }
 
 test "hard line breaks spec" {
-    assert.equal(root.spec.spec_failures("Hard line breaks"), 0)
+    assert.equal(root.spec.spec_failures("Hard line breaks"), [])
 }
 
 test "soft line breaks spec" {
-    assert.equal(root.spec.spec_failures("Soft line breaks"), 0)
+    assert.equal(root.spec.spec_failures("Soft line breaks"), [])
 }
 
 test "textual content spec" {
-    assert.equal(root.spec.spec_failures("Textual content"), 0)
+    assert.equal(root.spec.spec_failures("Textual content"), [])
 }
 
 test "precedence spec" {
-    assert.equal(root.spec.spec_failures("Precedence"), 0)
+    assert.equal(root.spec.spec_failures("Precedence"), [])
 }
 
 test "entity spec" {
-    assert.equal(root.spec.spec_failures("Entity and numeric character references"), 0)
+    assert.equal(root.spec.spec_failures("Entity and numeric character references"), [])
 }
 
 test "emphasis spec" {
-    assert.equal(root.spec.spec_failures("Emphasis and strong emphasis"), 0)
+    assert.equal(root.spec.spec_failures("Emphasis and strong emphasis"), [])
 }
 
 test "links spec" {
-    assert.equal(root.spec.spec_failures("Links"), 0)
+    assert.equal(root.spec.spec_failures("Links"), [])
 }
 
 test "images spec" {
-    assert.equal(root.spec.spec_failures("Images"), 0)
+    assert.equal(root.spec.spec_failures("Images"), [])
 }
 
 test "inlines spec" {
-    assert.equal(root.spec.spec_failures("Inlines"), 0)
+    assert.equal(root.spec.spec_failures("Inlines"), [])
 }
 
 test "tabs spec" {
-    assert.equal(root.spec.spec_failures("Tabs"), 0)
+    assert.equal(root.spec.spec_failures("Tabs"), [])
 }

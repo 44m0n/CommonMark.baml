@@ -51,5 +51,5 @@ test "blank line splits two block quotes" {
 }
 
 test "block quote spec" {
-    assert.equal(root.spec.spec_failures("Block quotes"), 0)
+    assert.equal(root.spec.spec_failures("Block quotes"), [])
 }

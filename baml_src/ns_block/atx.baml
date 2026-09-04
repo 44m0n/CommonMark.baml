@@ -118,7 +118,7 @@ test "atx interrupts a paragraph" {
 }
 
 test "atx heading spec" {
-    assert.equal(root.spec.spec_failures("ATX headings"), 0)
+    assert.equal(root.spec.spec_failures("ATX headings"), [])
 }
 
 test "atx heading trims only spaces and tabs" {

@@ -78,5 +78,5 @@ test "four-space indent is not a thematic break" {
 }
 
 test "thematic break spec" {
-    assert.equal(root.spec.spec_failures("Thematic breaks"), 0)
+    assert.equal(root.spec.spec_failures("Thematic breaks"), [])
 }

@@ -1,5 +1,5 @@
 test "blank lines spec" {
-    assert.equal(root.spec.spec_failures("Blank lines"), 0)
+    assert.equal(root.spec.spec_failures("Blank lines"), [])
 }
 
 test "consecutive non-blank lines form one paragraph" {
@@ -14,5 +14,5 @@ test "paragraphs strip leading indent" {
 }
 
 test "paragraph spec" {
-    assert.equal(root.spec.spec_failures("Paragraphs"), 0)
+    assert.equal(root.spec.spec_failures("Paragraphs"), [])
 }
