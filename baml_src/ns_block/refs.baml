@@ -67,6 +67,10 @@ class ScanPiece {
     value: string,
 }
 
+function max_dest_paren_depth() -> int {
+    32
+}
+
 function parse_link_destination(s: string, i: int, table: map<string, string>) -> ScanPiece? {
     if (s.at(i) == "<") {
         let j = i + 1;
@@ -96,6 +100,9 @@ function parse_link_destination(s: string, i: int, table: map<string, string>) -
             i += 2;
         } else if (c == "(") {
             open_parens += 1;
+            if (open_parens > max_dest_paren_depth()) {
+                return null;
+            }
             i += 1;
         } else if (c == ")") {
             if (open_parens < 1) {
@@ -307,4 +314,24 @@ test "link labels allow 999 characters but not 1000" {
         root.to_html(`[${too_long}]: /u\n[${too_long}]\n`),
         `<p>[${too_long}]: /u\n[${too_long}]</p>\n`,
     )
+}
+
+test "link destination allows three nested parentheses" {
+    assert.equal(
+        root.to_html("[link](foo(and(bar(baz))))\n"),
+        `<p><a href="foo(and(bar(baz)))">link</a></p>\n`,
+    )
+}
+
+test "link destination allows 32 nested parentheses but not 33" {
+    let depth = max_dest_paren_depth();
+    let ok = `${"(".repeat(depth)}x${")".repeat(depth)}`;
+    assert.equal(root.to_html(`[a](${ok})\n`), `<p><a href="${ok}">a</a></p>\n`);
+    let too = `${"(".repeat(depth + 1)}x${")".repeat(depth + 1)}`;
+    assert.equal(root.to_html(`[a](${too})\n`), `<p>[a](${too})</p>\n`)
+}
+
+test "repeated unmatched link parens stay text" {
+    let bomb = "[a](".repeat(200);
+    assert.equal(root.to_html(bomb), `<p>${bomb}</p>\n`)
 }
