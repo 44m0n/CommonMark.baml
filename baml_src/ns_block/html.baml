@@ -1,3 +1,22 @@
+function strip_trailing_html_blanks(s: string) -> string {
+    if (!s.ends_with("\n")) {
+        return s;
+    }
+    let end = s.length();
+    while (end > 0) {
+        let i = end - 1;
+        while (i >= 0 && (s.at(i) == " " || s.at(i) == "\t")) {
+            i -= 1;
+        }
+        if (i >= 0 && s.at(i) == "\n") {
+            end = i;
+        } else {
+            break;
+        }
+    }
+    `${s.slice(0, end)}\n`
+}
+
 class HtmlBlockOps {
     implements BlockOps {
         function continue_line(self, parser: Parser, open: Open) -> ContinueResult throws never {
@@ -12,7 +31,11 @@ class HtmlBlockOps {
             let _ = parser;
             if let h: root.ast.HtmlBlock = open.ast {
                 h.html_type = open.html_type;
-                h.literal = content_text(open);
+                h.literal = if (open.html_type >= 1 && open.html_type <= 5) {
+                    strip_trailing_html_blanks(content_text(open))
+                } else {
+                    content_text(open)
+                };
             }
         }
 
@@ -460,4 +483,8 @@ test "html block spec" {
 test "html type 7 excludes script pre style textarea open tags" {
     assert.equal(root.to_html("<script/>\n"), "<p><script/></p>\n");
     assert.equal(root.to_html("<pre/>\n"), "<p><pre/></p>\n")
+}
+
+test "unclosed html comment drops trailing blank lines" {
+    assert.equal(root.to_html("<!-- foo\n\n\n"), "<!-- foo\n")
 }
