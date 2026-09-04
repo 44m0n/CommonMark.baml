@@ -5,7 +5,7 @@ class LineScan {
 }
 
 function preprocess(input: string) -> string {
-    input.replace_all("\u{0000}", "\u{FFFD}")
+    input.replace_all("\r\n", "\n").replace_all("\r", "\n").replace_all("\u{0000}", "\u{FFFD}")
 }
 
 function line_scan(line: string) -> LineScan {
@@ -73,6 +73,15 @@ function is_unicode_whitespace(ch: string) -> bool {
 
 test "preprocess replaces NUL with replacement character" {
     assert.equal(preprocess("a\u{0000}b"), "a\u{FFFD}b")
+}
+
+test "preprocess treats CR and CRLF as line endings" {
+    assert.equal(preprocess("a\rb"), "a\nb");
+    assert.equal(preprocess("a\r\nb"), "a\nb")
+}
+
+test "bare CR is a line ending in a paragraph" {
+    assert.equal(root.to_html("a\rb"), "<p>a\nb</p>\n")
 }
 
 test "tab at column 0 advances by 4" {
