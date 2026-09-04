@@ -1,0 +1,124 @@
+function render_document(document: root.ast.Document) -> string {
+    document.children
+        .map((b) -> {
+            render_block(b)
+        })
+        .join("")
+}
+
+function render_block(block: root.ast.Block) -> string {
+    match (block) {
+        let p: root.ast.Paragraph => render_paragraph(p),
+        let h: root.ast.Heading => render_heading(h),
+        let _tb: root.ast.ThematicBreak => "<hr />\n",
+        let c: root.ast.CodeBlock => render_code_block(c),
+        let h: root.ast.HtmlBlock => h.literal,
+        let q: root.ast.BlockQuote => render_block_quote(q),
+        let l: root.ast.List => render_list(l),
+    }
+}
+
+function render_paragraph(p: root.ast.Paragraph) -> string {
+    `<p>${render_inlines(p.children)}</p>\n`
+}
+
+function render_heading(h: root.ast.Heading) -> string {
+    `<h${h.level}>${render_inlines(h.children)}</h${h.level}>\n`
+}
+
+function render_code_block(c: root.ast.CodeBlock) -> string {
+    let info = if (c.info) {
+        ` class="language-${c.info.split(" ").at(0) ?? c.info}"`
+    } else {
+        ""
+    };
+    `<pre><code${info}>${escape_html(c.literal)}</code></pre>\n`
+}
+
+function render_block_quote(q: root.ast.BlockQuote) -> string {
+    `<blockquote>\n${q.children.map((b) -> { render_block(b) }).join("")}</blockquote>\n`
+}
+
+function render_list(list: root.ast.List) -> string {
+    let inner = list.children
+        .map((item) -> {
+            render_list_item(item, list.tight)
+        })
+        .join("");
+    if (list.kind == root.ast.ListKind.Ordered) {
+        let start_attr = if (list.start == 1) {
+            ""
+        } else {
+            ` start="${list.start}"`
+        };
+        `<ol${start_attr}>\n${inner}</ol>\n`
+    } else {
+        `<ul>\n${inner}</ul>\n`
+    }
+}
+
+function render_list_item(item: root.ast.ListItem, tight: bool) -> string {
+    let _ = tight;
+    `<li>${item.children.map((b) -> { render_block(b) }).join("")}</li>\n`
+}
+
+function render_inlines(inlines: root.ast.Inline[]) -> string {
+    inlines
+        .map((n) -> {
+            render_inline(n)
+        })
+        .join("")
+}
+
+function render_inline(node: root.ast.Inline) -> string {
+    match (node) {
+        let t: root.ast.Text => escape_html(t.literal),
+        let _sb: root.ast.SoftBreak => "\n",
+        let _hb: root.ast.HardBreak => "<br />\n",
+        let c: root.ast.CodeSpan => `<code>${escape_html(c.literal)}</code>`,
+        let e: root.ast.Emph => `<em>${render_inlines(e.children)}</em>`,
+        let s: root.ast.Strong => `<strong>${render_inlines(s.children)}</strong>`,
+        let l: root.ast.Link => render_link(l),
+        let i: root.ast.Image => render_image(i),
+        let h: root.ast.HtmlInline => h.literal,
+        let a: root.ast.Autolink => render_autolink(a),
+    }
+}
+
+function render_link(l: root.ast.Link) -> string {
+    let title = if let t: string = l.title {
+        ` title="${escape_html(t)}"`
+    } else {
+        ""
+    };
+    `<a href="${escape_href(l.destination)}"${title}>${render_inlines(l.children)}</a>`
+}
+
+function render_image(i: root.ast.Image) -> string {
+    let title = if let t: string = i.title {
+        ` title="${escape_html(t)}"`
+    } else {
+        ""
+    };
+    `<img src="${escape_href(i.destination)}" alt="${escape_html(render_inlines(i.children))}"${title} />`
+}
+
+function render_autolink(a: root.ast.Autolink) -> string {
+    let href = if (a.email) {
+        `mailto:${a.destination}`
+    } else {
+        a.destination
+    };
+    `<a href="${escape_href(href)}">${escape_html(a.destination)}</a>`
+}
+
+function escape_html(s: string) -> string {
+    s.replace_all("&", "&amp;").replace_all("<", "&lt;").replace_all(">", "&gt;").replace_all(
+        "\"",
+        "&quot;",
+    )
+}
+
+function escape_href(s: string) -> string {
+    escape_html(s)
+}
