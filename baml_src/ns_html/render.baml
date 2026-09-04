@@ -26,8 +26,20 @@ function render_heading(h: root.ast.Heading) -> string {
     `<h${h.level}>${render_inlines(h.children)}</h${h.level}>\n`
 }
 
+function first_info_word(info: string) -> string {
+    let i = 0;
+    while (i < info.length()) {
+        let c = info.at(i) ?? "";
+        if (c == " " || c == "\t") {
+            break;
+        }
+        i += 1;
+    }
+    info.slice(0, i)
+}
+
 function render_code_block(c: root.ast.CodeBlock) -> string {
-    let lang = c.info.split(" ").at(0) ?? "";
+    let lang = first_info_word(c.info);
     let info = if (lang) {
         ` class="language-${escape_html(lang)}"`
     } else {

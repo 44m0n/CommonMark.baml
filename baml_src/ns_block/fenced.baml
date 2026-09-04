@@ -135,6 +135,13 @@ test "fenced code info string becomes a language class" {
     )
 }
 
+test "fenced info language splits on tab" {
+    assert.equal(
+        root.to_html("```js\tmeta\nx\n```\n"),
+        "<pre><code class=\"language-js\">x\n</code></pre>\n",
+    )
+}
+
 test "closing fence must be at least as long and unindented past three" {
     assert.equal(root.to_html("```\naaa\n    ```\n"), "<pre><code>aaa\n    ```\n</code></pre>\n")
 }
