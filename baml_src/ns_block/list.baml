@@ -503,6 +503,7 @@ test "lists spec examples that do not need html blocks or link refs" {
             314,
             315,
             316,
+            317,
             318,
             319,
             320,

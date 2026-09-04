@@ -212,7 +212,12 @@ class ParagraphOps {
         }
 
         function finalize(self, parser: Parser, open: Open) -> void throws never {
-            let raw = strip_final_newline(open.string_content);
+            let remaining = consume_link_reference_definitions(open.string_content, parser.document.refs);
+            if (is_blank_text(strip_final_newline(remaining))) {
+                unlink_block(parser, open.ast);
+                return;
+            }
+            let raw = strip_final_newline(remaining);
             if let p: root.ast.Paragraph = open.ast {
                 p.raw = raw;
                 p.children = root.inline.parse_inlines(raw, parser.document.refs);
