@@ -14,6 +14,7 @@ function parse_inlines(raw: string, refs: map<string, root.ast.LinkRef>) -> root
             push_text(s, bump(s) ?? "");
         }
     }
+    let _ = trim_trailing_spaces(s);
     s.inlines
 }
 
@@ -36,7 +37,7 @@ test "backslash unescapes ascii punctuation" {
 }
 
 test "commonmark_inline_rules includes leaf inline rules" {
-    assert.equal(commonmark_inline_rules().length(), 4)
+    assert.equal(commonmark_inline_rules().length(), 5)
 }
 
 test "backslash spec examples that do not need later constructs" {
@@ -79,4 +80,22 @@ test "autolink spec" {
 
 test "raw html spec" {
     assert.equal(root.spec.spec_failures("Raw HTML"), 0)
+}
+
+test "hard line breaks spec examples that do not need emphasis" {
+    root.spec.assert_spec_examples(
+        [633, 634, 635, 636, 637, 640, 641, 642, 643, 644, 645, 646, 647],
+    )
+}
+
+test "soft line breaks spec" {
+    assert.equal(root.spec.spec_failures("Soft line breaks"), 0)
+}
+
+test "textual content spec" {
+    assert.equal(root.spec.spec_failures("Textual content"), 0)
+}
+
+test "precedence spec" {
+    assert.equal(root.spec.spec_failures("Precedence"), 0)
 }

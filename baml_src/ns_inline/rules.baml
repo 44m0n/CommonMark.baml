@@ -4,5 +4,11 @@ interface InlineParseRule {
 }
 
 function commonmark_inline_rules() -> InlineParseRule[] {
-    [BackslashRule {  }, CodeSpanRule {  }, AutolinkRule {  }, HtmlInlineRule {  }]
+    [
+        BackslashRule {  },
+        NewlineRule {  },
+        CodeSpanRule {  },
+        AutolinkRule {  },
+        HtmlInlineRule {  },
+    ]
 }
