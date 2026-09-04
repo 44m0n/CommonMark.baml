@@ -49,14 +49,6 @@ function scan_delims(s: Subject, marker: string) -> DelimScan {
     }
 }
 
-function replace_delimiters(s: Subject, start: int, count: int, repl: Delimiter[]) -> void {
-    s.delimiters.splice(start, count, repl) catch (e) {
-        baml.errors.InvalidArgument => {
-            baml.sys.panic("delimiter splice out of range")
-        }
-    }
-}
-
 function trim_delim_text(cell: InlineCell, use_delims: int) -> void {
     if let t: root.ast.Text = cell.node {
         t.literal = t.literal.slice(0, t.literal.length() - use_delims);
@@ -97,67 +89,99 @@ function openers_bottom_index(kind: string, closer: Delimiter) -> int {
     base + extra + (closer.orig_count % 3)
 }
 
+function unlink_between(s: Subject, opener: Delimiter, closer: Delimiter) -> void {
+    let delim = closer.prev;
+    while (true) {
+        if let d: Delimiter = delim {
+            if (d.ord == opener.ord) {
+                break;
+            }
+            let prev = d.prev;
+            unlink_delim(s, d);
+            delim = prev;
+        } else {
+            break;
+        }
+    }
+}
+
+function insert_emph(s: Subject, opener: Delimiter, closer: Delimiter) -> Delimiter? {
+    let use_delims = if (closer.count >= 2 && opener.count >= 2) {
+        2
+    } else {
+        1
+    };
+    wrap_between(s, opener, closer, use_delims);
+    unlink_between(s, opener, closer);
+    let next_closer: Delimiter? = closer;
+    if (opener.count == 0) {
+        unlink_delim(s, opener);
+    }
+    if (closer.count == 0) {
+        next_closer = closer.next;
+        unlink_delim(s, closer);
+    }
+    next_closer
+}
+
 function process_emphasis(s: Subject, stack_bottom: int) -> void {
     let openers_bottom: int[] = [];
     let i = 0;
     while (i < 12) {
-        openers_bottom.push(stack_bottom - 1);
+        openers_bottom.push(stack_bottom);
         i += 1;
     }
-    let ci = stack_bottom;
-    while (ci < s.delimiters.length()) {
-        let closer = s.delimiters[ci];
-        if (closer.kind != "*" && closer.kind != "_") {
-            ci += 1;
-            continue;
-        }
-        if (!closer.can_close) {
-            ci += 1;
-            continue;
-        }
-        let obi = openers_bottom_index(closer.kind, closer);
-        let oi = ci - 1;
-        let opener_found = false;
-        let opener_i = -1;
-        while (oi >= stack_bottom && oi > openers_bottom[obi]) {
-            let opener = s.delimiters[oi];
-            let odd_match = (closer.can_open || opener.can_close)
-                && closer.orig_count % 3 != 0
-                && (opener.orig_count + closer.orig_count) % 3 == 0;
-            if (opener.kind == closer.kind && opener.can_open && !odd_match) {
-                opener_found = true;
-                opener_i = oi;
-                break;
-            }
-            oi -= 1;
-        }
-        if (!opener_found) {
-            openers_bottom[obi] = ci - 1;
-            if (!closer.can_open) {
-                let _ = s.delimiters.remove_at(ci);
+    let closer = s.delimiters.at(stack_bottom);
+    while (true) {
+        if let c: Delimiter = closer {
+            if ((c.kind == "*" || c.kind == "_") && c.can_close) {
+                let obi = openers_bottom_index(c.kind, c);
+                let opener = c.prev;
+                let found: Delimiter? = null;
+                while (true) {
+                    if let o: Delimiter = opener {
+                        if (o.ord < stack_bottom || o.ord < openers_bottom[obi]) {
+                            break;
+                        }
+                        let odd_match = (c.can_open || o.can_close)
+                            && c.orig_count % 3 != 0
+                            && (o.orig_count + c.orig_count) % 3 == 0;
+                        if (o.kind == c.kind && o.can_open && !odd_match) {
+                            found = o;
+                            break;
+                        }
+                        opener = o.prev;
+                    } else {
+                        break;
+                    }
+                }
+                if let o: Delimiter = found {
+                    closer = insert_emph(s, o, c);
+                } else {
+                    openers_bottom[obi] = c.ord;
+                    closer = c.next;
+                    if (!c.can_open) {
+                        unlink_delim(s, c);
+                    }
+                }
             } else {
-                ci += 1;
+                closer = c.next;
             }
         } else {
-            let opener = s.delimiters[opener_i];
-            let use_delims = if (closer.count >= 2 && opener.count >= 2) {
-                2
-            } else {
-                1
-            };
-            wrap_between(s, opener, closer, use_delims);
-            replace_delimiters(s, opener_i + 1, ci - opener_i - 1, []);
-            let closer_i = opener_i + 1;
-            if (opener.count == 0) {
-                let _ = s.delimiters.remove_at(opener_i);
-                closer_i -= 1;
+            break;
+        }
+    }
+    let d = s.delim_tail;
+    while (true) {
+        if let cur: Delimiter = d {
+            if (cur.ord < stack_bottom) {
+                break;
             }
-            if (closer.count == 0) {
-                let _ = s.delimiters.remove_at(closer_i);
-                ci = closer_i;
-            } else {
-                ci = closer_i;
-            }
+            let prev = cur.prev;
+            unlink_delim(s, cur);
+            d = prev;
+        } else {
+            break;
         }
     }
     while (s.delimiters.length() > stack_bottom) {
@@ -187,7 +211,8 @@ class EmphasisRule {
             let node = root.ast.Text { literal: lit };
             push_node(s, node);
             if (info.can_open || info.can_close) {
-                s.delimiters.push(
+                push_delim(
+                    s,
                     Delimiter {
                         kind: ch ?? "*",
                         count: info.count,
@@ -196,6 +221,9 @@ class EmphasisRule {
                         can_open: info.can_open,
                         can_close: info.can_close,
                         cell: s.tail ?? dummy_cell(),
+                        ord: 0,
+                        prev: null,
+                        next: null,
                     },
                 );
                 s.last_protected = true;

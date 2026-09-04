@@ -6,6 +6,36 @@ class Delimiter {
     can_open: bool,
     can_close: bool,
     cell: InlineCell,
+    ord: int,
+    prev: Delimiter?,
+    next: Delimiter?,
+}
+
+function push_delim(s: Subject, d: Delimiter) -> void {
+    d.ord = s.delimiters.length();
+    d.prev = s.delim_tail;
+    d.next = null;
+    if let t: Delimiter = s.delim_tail {
+        t.next = d;
+    }
+    s.delim_tail = d;
+    s.delimiters.push(d);
+}
+
+function unlink_delim(s: Subject, d: Delimiter) -> void {
+    let prev = d.prev;
+    let next = d.next;
+    if let p: Delimiter = prev {
+        p.next = next;
+    }
+    if let n: Delimiter = next {
+        n.prev = prev;
+    } else {
+        s.delim_tail = prev;
+    }
+    d.prev = null;
+    d.next = null;
+    d.active = false;
 }
 
 class DelimiterStack {
@@ -49,6 +79,9 @@ test "push and pop maintain LIFO order" {
             can_open: true,
             can_close: false,
             cell: dummy_cell(),
+            ord: 0,
+            prev: null,
+            next: null,
         },
     );
     stack_push(
@@ -61,6 +94,9 @@ test "push and pop maintain LIFO order" {
             can_open: false,
             can_close: true,
             cell: dummy_cell(),
+            ord: 1,
+            prev: null,
+            next: null,
         },
     );
     let top = stack_top(stack);
@@ -82,6 +118,9 @@ test "delimiter records open and close flags" {
         can_open: true,
         can_close: false,
         cell: dummy_cell(),
+        ord: 0,
+        prev: null,
+        next: null,
     };
     assert.is_true(d.can_open);
     assert.equal(d.can_close, false);
