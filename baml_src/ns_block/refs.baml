@@ -42,7 +42,7 @@ function parse_link_label(s: string, i: int) -> int? {
     }
     let j = i + 1;
     while (j < s.length()) {
-        if (j - i > 1001) {
+        if (j - i > 1000) {
             return null;
         }
         let c = s.at(j) ?? "";
@@ -282,4 +282,17 @@ test "link definitions cannot interrupt a paragraph" {
 
 test "link reference spec" {
     assert.equal(root.spec.spec_failures("Link reference definitions"), 0)
+}
+
+test "link labels allow 999 characters but not 1000" {
+    let ok = "x".repeat(999);
+    assert.equal(
+        root.to_html(`[${ok}]: /u\n[${ok}]\n`),
+        `<p><a href="/u">${ok}</a></p>\n`,
+    );
+    let too_long = "x".repeat(1000);
+    assert.equal(
+        root.to_html(`[${too_long}]: /u\n[${too_long}]\n`),
+        `<p>[${too_long}]: /u\n[${too_long}]</p>\n`,
+    )
 }
