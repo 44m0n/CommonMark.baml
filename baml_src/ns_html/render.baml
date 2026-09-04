@@ -140,6 +140,73 @@ function escape_html(s: string) -> string {
     )
 }
 
+function href_keep_ascii(code: int) -> bool {
+    (code >= 65 && code <= 90)
+        || (code >= 97 && code <= 122)
+        || (code >= 48 && code <= 57)
+        || code == 45
+        || code == 95
+        || code == 46
+        || code == 33
+        || code == 126
+        || code == 42
+        || code == 39
+        || code == 40
+        || code == 41
+        || code == 59
+        || code == 47
+        || code == 63
+        || code == 58
+        || code == 64
+        || code == 38
+        || code == 61
+        || code == 43
+        || code == 36
+        || code == 44
+        || code == 35
+}
+
+function percent_encode_char(ch: string) -> string {
+    let hex = ch.to_utf8().to_hex().to_upper_case();
+    let out = "";
+    let i = 0;
+    while (i < hex.length()) {
+        out = `${out}%${hex.slice(i, i + 2)}`;
+        i += 2;
+    }
+    out
+}
+
 function escape_href(s: string) -> string {
-    escape_html(s)
+    let out = "";
+    let i = 0;
+    let chars = s.chars();
+    while (i < chars.length()) {
+        let ch = chars[i];
+        if (ch == "%") {
+            let n1 = chars.at(i + 1) ?? "";
+            let n2 = chars.at(i + 2) ?? "";
+            if (n1.is_ascii_hex() && n2.is_ascii_hex()) {
+                out = `${out}%${n1}${n2}`;
+                i += 3;
+                continue;
+            }
+        }
+        let code = ch.code_point_at(0) ?? 0;
+        if (ch == "&") {
+            out = `${out}&amp;`;
+        } else if (ch == "\"") {
+            out = `${out}&quot;`;
+        } else if (ch == "<") {
+            out = `${out}&lt;`;
+        } else if (ch == ">") {
+            out = `${out}&gt;`;
+        } else if (href_keep_ascii(code)) {
+            out = `${out}${ch}`;
+        } else {
+            out = `${out}${percent_encode_char(ch)}`;
+        }
+        i += 1;
+    }
+    out
 }

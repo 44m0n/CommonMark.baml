@@ -421,7 +421,7 @@ test "html comment block" {
 test "html block type 7 does not interrupt a paragraph" {
     assert.equal(
         root.to_html("Foo\n<a href=\"bar\">\nbaz\n"),
-        "<p>Foo\n&lt;a href=&quot;bar&quot;&gt;\nbaz</p>\n",
+        "<p>Foo\n<a href=\"bar\">\nbaz</p>\n",
     )
 }
 
@@ -460,6 +460,7 @@ test "html block spec examples that do not need inlines" {
             184,
             185,
             186,
+            187,
             189,
             190,
             191,

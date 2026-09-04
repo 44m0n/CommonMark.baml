@@ -35,12 +35,12 @@ test "backslash unescapes ascii punctuation" {
     assert.equal(nodes.at(0), root.ast.Text { literal: "*a" })
 }
 
-test "commonmark_inline_rules includes backslash and code spans" {
-    assert.equal(commonmark_inline_rules().length(), 2)
+test "commonmark_inline_rules includes leaf inline rules" {
+    assert.equal(commonmark_inline_rules().length(), 4)
 }
 
 test "backslash spec examples that do not need later constructs" {
-    root.spec.assert_spec_examples([12, 13, 14, 16, 17, 18, 19, 21, 24])
+    root.spec.assert_spec_examples([12, 13, 14, 16, 17, 18, 19, 20, 21, 24])
 }
 
 test "code span spec examples that do not need later constructs" {
@@ -62,9 +62,21 @@ test "code span spec examples that do not need later constructs" {
             340,
             341,
             342,
+            343,
+            344,
+            345,
+            346,
             347,
             348,
             349,
         ],
     )
+}
+
+test "autolink spec" {
+    assert.equal(root.spec.spec_failures("Autolinks"), 0)
+}
+
+test "raw html spec" {
+    assert.equal(root.spec.spec_failures("Raw HTML"), 0)
 }
