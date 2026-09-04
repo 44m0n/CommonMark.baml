@@ -38,6 +38,7 @@ function commonmark_options() -> ParseOptions {
         block_starts: [
             AtxHeadingStart {  },
             FencedCodeStart {  },
+            SetextHeadingStart {  },
             ThematicBreakStart {  },
             IndentedCodeStart {  },
         ],

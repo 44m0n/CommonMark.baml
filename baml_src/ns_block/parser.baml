@@ -16,6 +16,10 @@ class Parser {
         self.stack[self.stack.length() - 1]
     }
 
+    function last_matched(self) -> Open {
+        self.stack[self.last_matched_index]
+    }
+
     function find_next_nonspace(self) -> void {
         let i = self.scan.pos;
         let cols = self.scan.column;
