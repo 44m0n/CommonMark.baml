@@ -286,10 +286,7 @@ test "link reference spec" {
 
 test "link labels allow 999 characters but not 1000" {
     let ok = "x".repeat(999);
-    assert.equal(
-        root.to_html(`[${ok}]: /u\n[${ok}]\n`),
-        `<p><a href="/u">${ok}</a></p>\n`,
-    );
+    assert.equal(root.to_html(`[${ok}]: /u\n[${ok}]\n`), `<p><a href="/u">${ok}</a></p>\n`);
     let too_long = "x".repeat(1000);
     assert.equal(
         root.to_html(`[${too_long}]: /u\n[${too_long}]\n`),
