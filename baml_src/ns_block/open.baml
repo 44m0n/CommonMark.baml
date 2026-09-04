@@ -47,6 +47,14 @@ function open_thematic_break() -> Open {
     make_open("thematic_break", ThematicBreakOps {  }, root.ast.ThematicBreak {  })
 }
 
+function open_heading(level: int) -> Open {
+    make_open(
+        "heading",
+        HeadingOps {  },
+        root.ast.Heading { level: level, setext: false, raw: "", children: [] },
+    )
+}
+
 function strip_final_newline(s: string) -> string {
     if (s.ends_with("\n")) {
         s.slice(0, s.length() - 1)
@@ -135,6 +143,41 @@ class ThematicBreakOps {
         function finalize(self, parser: Parser, open: Open) -> void throws never {
             let _ = parser;
             let _ = open;
+        }
+
+        function can_contain(self, child_name: string) -> bool throws never {
+            let _ = child_name;
+            false
+        }
+
+        function accepts_lines(self) -> bool throws never {
+            false
+        }
+
+        function is_interruptible(self) -> bool throws never {
+            false
+        }
+
+        function allows_lazy(self) -> bool throws never {
+            false
+        }
+    }
+}
+
+class HeadingOps {
+    implements BlockOps {
+        function continue_line(self, parser: Parser, open: Open) -> ContinueResult throws never {
+            let _ = parser;
+            let _ = open;
+            ContinueResult.Stop
+        }
+
+        function finalize(self, parser: Parser, open: Open) -> void throws never {
+            let raw = open.string_content.trim();
+            if let h: root.ast.Heading = open.ast {
+                h.raw = raw;
+                h.children = root.inline.parse_inlines(raw, parser.document.refs);
+            }
         }
 
         function can_contain(self, child_name: string) -> bool throws never {
