@@ -5,6 +5,7 @@ class Subject {
     delimiters: Delimiter[],
     brackets: Bracket[],
     entities: map<string, string>,
+    last_protected: bool,
 }
 
 function subject(raw: string) -> Subject {
@@ -15,6 +16,7 @@ function subject(raw: string) -> Subject {
         delimiters: [],
         brackets: [],
         entities: {},
+        last_protected: false,
     }
 }
 
@@ -53,16 +55,8 @@ function skip_spaces_tabs(s: Subject) -> void {
 }
 
 function push_node(s: Subject, node: root.ast.Inline) -> void {
-    s.inlines.push(node)
-}
-
-function is_delim_or_bracket_node(s: Subject, idx: int) -> bool {
-    s.delimiters.some((d) -> {
-        d.inline_index == idx
-    })
-        || s.brackets.some((b) -> {
-            b.inline_index == idx
-        })
+    s.inlines.push(node);
+    s.last_protected = false
 }
 
 function push_text(s: Subject, t: string) -> void {
@@ -72,12 +66,13 @@ function push_text(s: Subject, t: string) -> void {
     let last_i = s.inlines.length() - 1;
     if (last_i >= 0) {
         let last = s.inlines[last_i];
-        if (last is root.ast.Text && !is_delim_or_bracket_node(s, last_i)) {
+        if (last is root.ast.Text && !s.last_protected) {
             last.literal = `${last.literal}${t}`;
             return;
         }
     }
-    s.inlines.push(root.ast.Text { literal: t })
+    s.inlines.push(root.ast.Text { literal: t });
+    s.last_protected = false
 }
 
 test "subject starts at position zero" {
@@ -108,4 +103,12 @@ test "push_text coalesces adjacent text nodes" {
     push_text(s, "lo");
     assert.equal(s.inlines.length(), 1);
     assert.equal(s.inlines.at(0), root.ast.Text { literal: "hello" })
+}
+
+test "push_text does not coalesce into a delimiter marker" {
+    let refs: map<string, root.ast.LinkRef> = {};
+    let nodes = parse_inlines("*a", refs);
+    assert.equal(nodes.length(), 2);
+    assert.equal(nodes.at(0), root.ast.Text { literal: "*" });
+    assert.equal(nodes.at(1), root.ast.Text { literal: "a" })
 }

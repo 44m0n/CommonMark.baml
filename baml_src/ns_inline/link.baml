@@ -139,6 +139,7 @@ class BangRule {
                     delim_bottom: s.delimiters.length(),
                 },
             );
+            s.last_protected = true;
             true
         }
     }
@@ -171,6 +172,7 @@ class OpenBracketRule {
                     delim_bottom: s.delimiters.length(),
                 },
             );
+            s.last_protected = true;
             true
         }
     }

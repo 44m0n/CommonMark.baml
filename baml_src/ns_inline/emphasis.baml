@@ -63,17 +63,19 @@ function shift_inline_indices(s: Subject, from: int, delta: int) -> void {
 }
 
 function replace_inlines(s: Subject, start: int, count: int, repl: root.ast.Inline[]) -> void {
-    s.inlines
-        = s.inlines.slice(0, start).concat(repl).concat(
-            s.inlines.slice(start + count, s.inlines.length()),
-        )
+    s.inlines.splice(start, count, repl) catch (e) {
+        baml.errors.InvalidArgument => {
+            baml.sys.panic("inline splice out of range")
+        }
+    }
 }
 
 function replace_delimiters(s: Subject, start: int, count: int, repl: Delimiter[]) -> void {
-    s.delimiters
-        = s.delimiters.slice(0, start).concat(repl).concat(
-            s.delimiters.slice(start + count, s.delimiters.length()),
-        )
+    s.delimiters.splice(start, count, repl) catch (e) {
+        baml.errors.InvalidArgument => {
+            baml.sys.panic("delimiter splice out of range")
+        }
+    }
 }
 
 function remove_inline_at(s: Subject, idx: int) -> void {
@@ -228,6 +230,7 @@ class EmphasisRule {
                         inline_index: s.inlines.length() - 1,
                     },
                 );
+                s.last_protected = true;
             }
             true
         }
