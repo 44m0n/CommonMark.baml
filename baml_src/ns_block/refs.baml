@@ -143,6 +143,8 @@ function parse_link_title(s: string, i: int, table: map<string, string>) -> Scan
             if (j < s.length()) {
                 j += 1;
             }
+        } else if (opener == "(" && c == "(") {
+            return null;
         } else if (c == closer) {
             return ScanPiece { end: j + 1, value: unescape_string(s.slice(i + 1, j), table = table) };
         } else {
@@ -339,4 +341,12 @@ test "link destination allows 32 nested parentheses but not 33" {
 test "repeated unmatched link parens stay text" {
     let bomb = "[a](".repeat(200);
     assert.equal(root.to_html(bomb), `<p>${bomb}</p>\n`)
+}
+
+test "parenthesized title rejects an unescaped opening paren" {
+    assert.equal(root.to_html("[a](/u (ti(tle))\n"), "<p>[a](/u (ti(tle))</p>\n");
+    assert.equal(
+        root.to_html("[a](/u (ti\\(tle))\n"),
+        "<p><a href=\"/u\" title=\"ti(tle\">a</a></p>\n",
+    )
 }
