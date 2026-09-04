@@ -14,5 +14,5 @@ test "paragraphs strip leading indent" {
 }
 
 test "paragraph spec examples that do not need later constructs" {
-    root.spec.assert_spec_examples([219, 220, 221, 222, 223, 224])
+    root.spec.assert_spec_examples([219, 220, 221, 222, 223, 224, 225])
 }
