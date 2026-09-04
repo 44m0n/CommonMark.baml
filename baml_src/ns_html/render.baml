@@ -63,6 +63,7 @@ function render_list_item(item: root.ast.ListItem, tight: bool) -> string {
     let i = 0;
     while (i < item.children.length()) {
         let b = item.children[i];
+        let tight_para = tight && b is root.ast.Paragraph;
         let chunk = if (tight && b is root.ast.Paragraph) {
             let text = render_inlines(b.children);
             if (i + 1 < item.children.length()) {
@@ -73,7 +74,7 @@ function render_list_item(item: root.ast.ListItem, tight: bool) -> string {
         } else {
             render_block(b)
         };
-        if (chunk.starts_with("<") && !inner.ends_with("\n")) {
+        if (!tight_para && chunk.starts_with("<") && !inner.ends_with("\n")) {
             inner = `${inner}\n${chunk}`;
         } else {
             inner = `${inner}${chunk}`;

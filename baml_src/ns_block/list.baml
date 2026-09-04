@@ -429,6 +429,27 @@ test "loose list from blank line between items" {
     )
 }
 
+test "tight list item starting with emphasis is not preceded by a newline" {
+    assert.equal(
+        root.to_html("- **Bold** item\n"),
+        "<ul>\n<li><strong>Bold</strong> item</li>\n</ul>\n",
+    )
+}
+
+test "tight list item starting with a link is not preceded by a newline" {
+    assert.equal(
+        root.to_html("- [x](y)\n"),
+        "<ul>\n<li><a href=\"y\">x</a></li>\n</ul>\n",
+    )
+}
+
+test "tight list item starting with a code span is not preceded by a newline" {
+    assert.equal(
+        root.to_html("- `code` x\n"),
+        "<ul>\n<li><code>code</code> x</li>\n</ul>\n",
+    )
+}
+
 test "list item spec" {
     assert.equal(root.spec.spec_failures("List items"), 0)
 }
