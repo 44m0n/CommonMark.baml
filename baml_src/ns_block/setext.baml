@@ -54,7 +54,7 @@ function setext_heading_level(line: string, start: int) -> int? {
 }
 
 function convert_paragraph_to_setext(parser: Parser, para: Open, level: int) -> void {
-    let heading = root.ast.Heading { level: level, setext: true, raw: "", children: [] };
+    let heading = root.ast.Heading { level: level, setext: true, raw: "", children: [], last_line_blank: false };
     if (parser.stack.length() >= 2) {
         let parent = parser.stack[parser.stack.length() - 2];
         let last = parent.children.length() - 1;
@@ -92,6 +92,6 @@ test "multiline paragraph becomes one setext heading" {
 
 test "setext heading spec examples that do not need later constructs" {
     root.spec.assert_spec_examples(
-        [83, 84, 85, 86, 87, 88, 89, 90, 92, 93, 95, 96, 97, 98, 100, 101, 103, 104, 105],
+        [83, 84, 85, 86, 87, 88, 89, 90, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 103, 104, 105],
     )
 }

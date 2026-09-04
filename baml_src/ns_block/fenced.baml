@@ -94,11 +94,21 @@ function skip_fence_indent(parser: Parser, fence_offset: int) -> void {
 function fenced_info_and_literal(content: string) -> root.ast.CodeBlock {
     let nl = content.index_of("\n");
     if (nl == null) {
-        root.ast.CodeBlock { fenced: true, info: content.trim(), literal: "" }
+        root.ast.CodeBlock {
+            fenced: true,
+            info: content.trim(),
+            literal: "",
+            last_line_blank: false,
+        }
     } else {
         let first = content.slice(0, nl);
         let rest = content.slice(nl + 1, content.length());
-        root.ast.CodeBlock { fenced: true, info: first.trim(), literal: rest }
+        root.ast.CodeBlock {
+            fenced: true,
+            info: first.trim(),
+            literal: rest,
+            last_line_blank: false,
+        }
     }
 }
 
@@ -152,6 +162,7 @@ test "fenced code spec examples that do not need later constructs" {
             137,
             139,
             140,
+            141,
             142,
             143,
             144,

@@ -1,16 +1,32 @@
+class ListData {
+    kind: root.ast.ListKind,
+    start: int,
+    delimiter: string,
+    bullet_char: string,
+    padding: int,
+    marker_offset: int,
+}
+
 class Open {
     type_name: string,
     ops: BlockOps,
-    ast: root.ast.Block?,
+    ast: (root.ast.Block | root.ast.ListItem)?,
     children: root.ast.Block[],
     string_content: string,
     is_fenced: bool,
     fence_char: string,
     fence_length: int,
     fence_offset: int,
+    last_line_blank: bool,
+    html_type: int,
+    list_data: ListData?,
 }
 
-function make_open(type_name: string, ops: BlockOps, ast: root.ast.Block?) -> Open {
+function make_open(
+    type_name: string,
+    ops: BlockOps,
+    ast: (root.ast.Block | root.ast.ListItem)?,
+) -> Open {
     let children: root.ast.Block[] = [];
     Open {
         type_name: type_name,
@@ -22,6 +38,9 @@ function make_open(type_name: string, ops: BlockOps, ast: root.ast.Block?) -> Op
         fence_char: "",
         fence_length: 0,
         fence_offset: 0,
+        last_line_blank: false,
+        html_type: 0,
+        list_data: null,
     }
 }
 
@@ -36,31 +55,52 @@ function make_document_open(doc: root.ast.Document) -> Open {
         fence_char: "",
         fence_length: 0,
         fence_offset: 0,
+        last_line_blank: false,
+        html_type: 0,
+        list_data: null,
     }
 }
 
 function open_paragraph() -> Open {
-    make_open("paragraph", ParagraphOps {  }, root.ast.Paragraph { raw: "", children: [] })
+    make_open(
+        "paragraph",
+        ParagraphOps {  },
+        root.ast.Paragraph { raw: "", children: [], last_line_blank: false },
+    )
 }
 
 function open_thematic_break() -> Open {
-    make_open("thematic_break", ThematicBreakOps {  }, root.ast.ThematicBreak {  })
+    make_open("thematic_break", ThematicBreakOps {  }, root.ast.ThematicBreak { last_line_blank: false })
 }
 
 function open_heading(level: int) -> Open {
     make_open(
         "heading",
         HeadingOps {  },
-        root.ast.Heading { level: level, setext: false, raw: "", children: [] },
+        root.ast.Heading {
+            level: level,
+            setext: false,
+            raw: "",
+            children: [],
+            last_line_blank: false,
+        },
     )
 }
 
 function open_indented_code() -> Open {
-    make_open("code_block", CodeBlockOps {  }, root.ast.CodeBlock { fenced: false, info: "", literal: "" })
+    make_open(
+        "code_block",
+        CodeBlockOps {  },
+        root.ast.CodeBlock { fenced: false, info: "", literal: "", last_line_blank: false },
+    )
 }
 
 function open_fenced_code(fence_char: string, fence_length: int, fence_offset: int) -> Open {
-    let o = make_open("code_block", CodeBlockOps {  }, root.ast.CodeBlock { fenced: true, info: "", literal: "" });
+    let o = make_open(
+        "code_block",
+        CodeBlockOps {  },
+        root.ast.CodeBlock { fenced: true, info: "", literal: "", last_line_blank: false },
+    );
     o.is_fenced = true;
     o.fence_char = fence_char;
     o.fence_length = fence_length;
@@ -73,13 +113,16 @@ function open_block_quote() -> Open {
     Open {
         type_name: "block_quote",
         ops: BlockQuoteOps {  },
-        ast: root.ast.BlockQuote { children: children },
+        ast: root.ast.BlockQuote { children: children, last_line_blank: false },
         children: children,
         string_content: "",
         is_fenced: false,
         fence_char: "",
         fence_length: 0,
         fence_offset: 0,
+        last_line_blank: false,
+        html_type: 0,
+        list_data: null,
     }
 }
 

@@ -60,6 +60,7 @@ test "block quote spec examples that do not need lists" {
             232,
             233,
             234,
+            235,
             236,
             237,
             238,

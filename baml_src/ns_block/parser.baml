@@ -100,6 +100,7 @@ class Parser {
     function finalize_tip(self) -> void {
         let node = self.stack.pop();
         if (node != null) {
+            copy_last_line_blank(node);
             node.ops.finalize(self, node);
         }
     }
@@ -117,7 +118,11 @@ class Parser {
         while (!self.tip().ops.can_contain(child.type_name)) {
             self.finalize_tip();
         }
-        if let b: root.ast.Block = child.ast {
+        if let item: root.ast.ListItem = child.ast {
+            if let list: root.ast.List = self.tip().ast {
+                let _ = list.children.push(item);
+            }
+        } else if let b: root.ast.Block = child.ast {
             let _ = self.tip().children.push(b);
         }
         let _ = self.stack.push(child);
@@ -149,6 +154,7 @@ class Parser {
         self.all_closed = all_matched;
 
         let container = self.stack[self.last_matched_index];
+        let container_index = self.last_matched_index;
         let matched_leaf = !container.ops.is_interruptible() && container.ops.accepts_lines();
         //# Try each registered block start on the remaining line
         while (!matched_leaf) {
@@ -158,10 +164,12 @@ class Parser {
                 let res = start.try_open(self);
                 if (res == StartMatch.Container) {
                     container = self.tip();
+                    container_index = self.stack.length() - 1;
                     found = true;
                     break;
                 } else if (res == StartMatch.Leaf) {
                     container = self.tip();
+                    container_index = self.stack.length() - 1;
                     matched_leaf = true;
                     found = true;
                     break;
@@ -172,6 +180,9 @@ class Parser {
                 break;
             }
         }
+
+        self.find_next_nonspace();
+        record_last_line_blank(self, container, container_index);
 
         if (!self.all_closed && !self.blank && self.tip().ops.allows_lazy()) {
             self.add_line();

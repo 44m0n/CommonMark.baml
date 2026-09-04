@@ -59,8 +59,28 @@ function render_list(list: root.ast.List) -> string {
 }
 
 function render_list_item(item: root.ast.ListItem, tight: bool) -> string {
-    let _ = tight;
-    `<li>${item.children.map((b) -> { render_block(b) }).join("")}</li>\n`
+    let inner = "";
+    let i = 0;
+    while (i < item.children.length()) {
+        let b = item.children[i];
+        let chunk = if (tight && b is root.ast.Paragraph) {
+            let text = render_inlines(b.children);
+            if (i + 1 < item.children.length()) {
+                `${text}\n`
+            } else {
+                text
+            }
+        } else {
+            render_block(b)
+        };
+        if (chunk.starts_with("<") && !inner.ends_with("\n")) {
+            inner = `${inner}\n${chunk}`;
+        } else {
+            inner = `${inner}${chunk}`;
+        }
+        i += 1;
+    }
+    `<li>${inner}</li>\n`
 }
 
 function render_inlines(inlines: root.ast.Inline[]) -> string {

@@ -11,6 +11,7 @@ class Document {
 class Paragraph {
     raw: string,
     children: Inline[],
+    last_line_blank: bool,
 }
 
 class Heading {
@@ -18,24 +19,29 @@ class Heading {
     setext: bool,
     raw: string,
     children: Inline[],
+    last_line_blank: bool,
 }
 
 class ThematicBreak {
+    last_line_blank: bool,
 }
 
 class CodeBlock {
     fenced: bool,
     info: string,
     literal: string,
+    last_line_blank: bool,
 }
 
 class HtmlBlock {
     html_type: int,
     literal: string,
+    last_line_blank: bool,
 }
 
 class BlockQuote {
     children: Block[],
+    last_line_blank: bool,
 }
 
 enum ListKind {
@@ -50,10 +56,12 @@ class List {
     delimiter: string,
     bullet_char: string,
     children: ListItem[],
+    last_line_blank: bool,
 }
 
 class ListItem {
     children: Block[],
+    last_line_blank: bool,
 }
 
 type Block = Paragraph | Heading | ThematicBreak | CodeBlock | HtmlBlock | BlockQuote | List;

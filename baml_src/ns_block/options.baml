@@ -41,6 +41,7 @@ function commonmark_options() -> ParseOptions {
             FencedCodeStart {  },
             SetextHeadingStart {  },
             ThematicBreakStart {  },
+            ListItemStart {  },
             IndentedCodeStart {  },
         ],
         inline_rules: [],

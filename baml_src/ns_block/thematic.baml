@@ -78,5 +78,7 @@ test "four-space indent is not a thematic break" {
 }
 
 test "thematic break spec examples that do not need later constructs" {
-    root.spec.assert_spec_examples([43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 58])
+    root.spec.assert_spec_examples(
+        [43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 57, 58, 59, 60, 61],
+    )
 }
