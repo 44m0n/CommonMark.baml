@@ -24,6 +24,14 @@ function examples_in(section: string) -> SpecExample[] {
     }
 }
 
+function spec_example(n: int) -> SpecExample? {
+    load_spec_tests().find((t) -> {
+        t.example == n
+    }) catch_all (e) {
+        _ => null
+    }
+}
+
 function spec_failures(section: string) -> int {
     let n = 0;
     for (let t in examples_in(section)) {
@@ -32,6 +40,17 @@ function spec_failures(section: string) -> int {
         }
     }
     n
+}
+
+function assert_spec_examples(nums: int[]) -> void {
+    for (let n in nums) {
+        let t = spec_example(n);
+        if let ex: SpecExample = t {
+            assert.equal(root.to_html(ex.markdown), ex.html)
+        } else {
+            assert.is_true(false)
+        }
+    }
 }
 
 test "spec dump has 652 examples" {
