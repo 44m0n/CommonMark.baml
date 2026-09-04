@@ -113,6 +113,10 @@ function parse_link_destination(s: string, i: int, table: map<string, string>) -
         } else if (c == " " || c == "\t" || c == "\n") {
             break;
         } else {
+            let code = c.code_point_at(0) ?? 0;
+            if (code < 32 || code == 127) {
+                return null;
+            }
             i += 1;
         }
     }
@@ -349,4 +353,11 @@ test "parenthesized title rejects an unescaped opening paren" {
         root.to_html("[a](/u (ti\\(tle))\n"),
         "<p><a href=\"/u\" title=\"ti(tle\">a</a></p>\n",
     )
+}
+
+test "bare destination rejects ascii control characters" {
+    let del = string.from_code_points([127]) catch (e) {
+        baml.errors.InvalidArgument => "?"
+    };
+    assert.equal(root.to_html(`[a](/u${del}x)\n`), `<p>[a](/u${del}x)</p>\n`)
 }
