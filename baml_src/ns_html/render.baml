@@ -71,7 +71,8 @@ function render_list(list: root.ast.List) -> string {
 }
 
 function render_list_item(item: root.ast.ListItem, tight: bool) -> string {
-    let inner = "";
+    let parts: string[] = [];
+    let inner_ends_nl = false;
     let i = 0;
     while (i < item.children.length()) {
         let b = item.children[i];
@@ -86,14 +87,14 @@ function render_list_item(item: root.ast.ListItem, tight: bool) -> string {
         } else {
             render_block(b)
         };
-        if (!tight_para && chunk.starts_with("<") && !inner.ends_with("\n")) {
-            inner = `${inner}\n${chunk}`;
-        } else {
-            inner = `${inner}${chunk}`;
+        if (!tight_para && chunk.starts_with("<") && !inner_ends_nl) {
+            parts.push("\n");
         }
+        parts.push(chunk);
+        inner_ends_nl = chunk.ends_with("\n");
         i += 1;
     }
-    `<li>${inner}</li>\n`
+    `<li>${parts.join("")}</li>\n`
 }
 
 function render_inlines(inlines: root.ast.Inline[]) -> string {
@@ -147,10 +148,46 @@ function render_autolink(a: root.ast.Autolink) -> string {
 }
 
 function escape_html(s: string) -> string {
-    s.replace_all("&", "&amp;").replace_all("<", "&lt;").replace_all(">", "&gt;").replace_all(
-        "\"",
-        "&quot;",
-    )
+    if (
+        s.index_of("&") == null
+            && s.index_of("<") == null
+            && s.index_of(">") == null
+            && s.index_of("\"") == null
+    ) {
+        return s;
+    }
+    let parts: string[] = [];
+    let i = 0;
+    let start = 0;
+    let n = s.length();
+    while (i < n) {
+        let c = s.at(i) ?? "";
+        let repl = if (c == "&") {
+            "&amp;"
+        } else if (c == "<") {
+            "&lt;"
+        } else if (c == ">") {
+            "&gt;"
+        } else if (c == "\"") {
+            "&quot;"
+        } else {
+            ""
+        };
+        if (repl.length() > 0) {
+            if (i > start) {
+                parts.push(s.slice(start, i));
+            }
+            parts.push(repl);
+            i += 1;
+            start = i;
+        } else {
+            i += 1;
+        }
+    }
+    if (start < n) {
+        parts.push(s.slice(start, n));
+    }
+    parts.join("")
 }
 
 function href_keep_ascii(code: int) -> bool {
@@ -181,24 +218,24 @@ function href_keep_ascii(code: int) -> bool {
 
 function percent_encode_char(ch: string) -> string {
     let hex = ch.to_utf8().to_hex().to_upper_case();
-    let out = "";
+    let parts: string[] = [];
     let i = 0;
     while (i < hex.length()) {
-        out = `${out}%${hex.slice(i, i + 2)}`;
+        parts.push(`%${hex.slice(i, i + 2)}`);
         i += 2;
     }
-    out
+    parts.join("")
 }
 
 function escape_href(s: string) -> string {
     let parts: string[] = [];
     let i = 0;
-    let chars = s.chars();
-    while (i < chars.length()) {
-        let ch = chars[i];
+    let n = s.length();
+    while (i < n) {
+        let ch = s.at(i) ?? "";
         if (ch == "%") {
-            let n1 = chars.at(i + 1) ?? "";
-            let n2 = chars.at(i + 2) ?? "";
+            let n1 = s.at(i + 1) ?? "";
+            let n2 = s.at(i + 2) ?? "";
             if (n1.is_ascii_hex() && n2.is_ascii_hex()) {
                 parts.push(`%${n1}${n2}`);
                 i += 3;

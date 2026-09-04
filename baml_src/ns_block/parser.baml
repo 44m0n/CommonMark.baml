@@ -92,10 +92,10 @@ class Parser {
         if (self.partially_consumed_tab) {
             self.scan.pos += 1;
             let chars_to_tab = root.scan.tab_spaces(self.scan.column);
-            t.string_content = `${t.string_content}${" ".repeat(chars_to_tab)}`;
+            append_content(t, " ".repeat(chars_to_tab));
         }
         let rest = self.scan.line.slice(self.scan.pos, self.scan.line.length());
-        t.string_content = `${t.string_content}${rest}\n`;
+        append_content(t, `${rest}\n`);
     }
 
     function finalize_tip(self) -> void {
@@ -161,7 +161,11 @@ class Parser {
         while (!matched_leaf) {
             self.find_next_nonspace();
             let found = false;
+            let ch = self.scan.line.at(self.next_nonspace);
             for (let start in self.options.block_starts) {
+                if (!block_start_could_match(start, self, ch)) {
+                    continue;
+                }
                 let res = start.try_open(self);
                 if (res == StartMatch.Container) {
                     container = self.tip();
@@ -198,6 +202,24 @@ class Parser {
                 self.advance_next_nonspace();
                 self.add_line();
             }
+        }
+    }
+}
+
+function block_start_could_match(start: BlockStart, parser: Parser, ch: string?) -> bool {
+    if (parser.indented) {
+        start.name() == "indented_code"
+    } else {
+        match (start.name()) {
+            "block_quote" => ch == ">",
+            "atx_heading" => ch == "#",
+            "fenced_code" => ch == "`" || ch == "~",
+            "html_block" => ch == "<",
+            "setext_heading" => ch == "=" || ch == "-",
+            "thematic_break" => ch == "*" || ch == "-" || ch == "_",
+            "list_item" => ch == "*" || ch == "-" || ch == "+" || is_digit_char(ch),
+            "indented_code" => false,
+            _ => true,
         }
     }
 }

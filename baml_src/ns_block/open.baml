@@ -13,6 +13,7 @@ class Open {
     ast: (root.ast.Block | root.ast.ListItem)?,
     children: root.ast.Block[],
     string_content: string,
+    content_parts: string[],
     is_fenced: bool,
     fence_char: string,
     fence_length: int,
@@ -34,6 +35,7 @@ function make_open(
         ast: ast,
         children: children,
         string_content: "",
+        content_parts: [],
         is_fenced: false,
         fence_char: "",
         fence_length: 0,
@@ -51,6 +53,7 @@ function make_document_open(doc: root.ast.Document) -> Open {
         ast: null,
         children: doc.children,
         string_content: "",
+        content_parts: [],
         is_fenced: false,
         fence_char: "",
         fence_length: 0,
@@ -116,6 +119,7 @@ function open_block_quote() -> Open {
         ast: root.ast.BlockQuote { children: children, last_line_blank: false },
         children: children,
         string_content: "",
+        content_parts: [],
         is_fenced: false,
         fence_char: "",
         fence_length: 0,
@@ -124,6 +128,28 @@ function open_block_quote() -> Open {
         html_type: 0,
         list_data: null,
     }
+}
+
+function content_text(open: Open) -> string {
+    if (open.content_parts.length() == 0) {
+        open.string_content
+    } else if (open.string_content.length() == 0) {
+        open.content_parts.join("")
+    } else {
+        `${open.string_content}${open.content_parts.join("")}`
+    }
+}
+
+function replace_content(open: Open, text: string) -> void {
+    open.string_content = text;
+    if (open.content_parts.length() > 0) {
+        let empty: string[] = [];
+        open.content_parts = empty;
+    }
+}
+
+function append_content(open: Open, chunk: string) -> void {
+    open.content_parts.push(chunk)
 }
 
 function strip_final_newline(s: string) -> string {
@@ -212,7 +238,7 @@ class ParagraphOps {
         }
 
         function finalize(self, parser: Parser, open: Open) -> void throws never {
-            let remaining = consume_link_reference_definitions(open.string_content, parser.document.refs, table = parser.entities);
+            let remaining = consume_link_reference_definitions(content_text(open), parser.document.refs, table = parser.entities);
             if (is_blank_text(strip_final_newline(remaining))) {
                 unlink_block(parser, open.ast);
                 return;
@@ -283,7 +309,7 @@ class HeadingOps {
         }
 
         function finalize(self, parser: Parser, open: Open) -> void throws never {
-            let raw = open.string_content.trim();
+            let raw = content_text(open).trim();
             if let h: root.ast.Heading = open.ast {
                 h.raw = raw;
             }
@@ -358,12 +384,12 @@ class CodeBlockOps {
         function finalize(self, parser: Parser, open: Open) -> void throws never {
             if let c: root.ast.CodeBlock = open.ast {
                 if (open.is_fenced) {
-                    let parsed = fenced_info_and_literal(open.string_content, table = parser.entities);
+                    let parsed = fenced_info_and_literal(content_text(open), table = parser.entities);
                     c.fenced = true;
                     c.info = parsed.info;
                     c.literal = parsed.literal;
                 } else {
-                    c.literal = indented_code_literal(open.string_content);
+                    c.literal = indented_code_literal(content_text(open));
                 }
             }
         }

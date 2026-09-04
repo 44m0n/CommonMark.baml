@@ -133,6 +133,9 @@ function scan_entity(line: string, i: int, table: map<string, string>) -> Entity
 }
 
 function unescape_markdown(s: string, table: map<string, string>) -> string {
+    if (s.index_of("\\") == null && s.index_of("&") == null) {
+        return s;
+    }
     let parts: string[] = [];
     let i = 0;
     while (i < s.length()) {

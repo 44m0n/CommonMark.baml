@@ -11,16 +11,77 @@ function is_inline_special(c: string) -> bool {
         || c == "\n"
 }
 
+function consider_index(found: int?, best: int) -> int {
+    if let i: int = found {
+        if (i < best) {
+            i
+        } else {
+            best
+        }
+    } else {
+        best
+    }
+}
+
+function first_special_index(s: string) -> int {
+    let best = s.length();
+    best = consider_index(s.index_of("\\"), best);
+    best = consider_index(s.index_of("`"), best);
+    best = consider_index(s.index_of("*"), best);
+    best = consider_index(s.index_of("_"), best);
+    best = consider_index(s.index_of("["), best);
+    best = consider_index(s.index_of("]"), best);
+    best = consider_index(s.index_of("!"), best);
+    best = consider_index(s.index_of("<"), best);
+    best = consider_index(s.index_of("&"), best);
+    consider_index(s.index_of("\n"), best)
+}
+
 function consume_plain_text(s: Subject) -> void {
-    let start = pos(s);
-    while (!is_eof(s)) {
-        let n = peek(s) ?? "";
-        if (is_inline_special(n)) {
+    let line = s.scan.line;
+    let start = s.scan.pos;
+    let n = line.length();
+    let i = start;
+    let probe = start + 64;
+    if (probe > n) {
+        probe = n;
+    }
+    while (i < probe) {
+        let c = line.at(i) ?? "";
+        if (is_inline_special(c)) {
             break;
         }
-        let _ = bump(s);
+        i += 1;
     }
-    push_text(s, s.scan.line.slice(start, pos(s)));
+    if (i < n && i == probe && !is_inline_special(line.at(i) ?? "")) {
+        let extra = first_special_index(line.slice(i, n));
+        i += extra;
+    }
+    if (i > start) {
+        push_text(s, line.slice(start, i));
+        s.scan.pos = i;
+    }
+}
+
+function try_inline_special(s: Subject, ch: string) -> bool {
+    match (ch) {
+        "\\" => BackslashRule {  }.parse(s),
+        "\n" => NewlineRule {  }.parse(s),
+        "`" => CodeSpanRule {  }.parse(s),
+        "&" => EntityRule {  }.parse(s),
+        "<" => {
+            if (AutolinkRule {  }.parse(s)) {
+                true
+            } else {
+                HtmlInlineRule {  }.parse(s)
+            }
+        },
+        "!" => BangRule {  }.parse(s),
+        "[" => OpenBracketRule {  }.parse(s),
+        "]" => CloseBracketRule {  }.parse(s),
+        "*" | "_" => EmphasisRule {  }.parse(s),
+        _ => false,
+    }
 }
 
 function parse_inlines(
@@ -32,19 +93,14 @@ function parse_inlines(
     let s = subject(raw);
     s.refs = refs;
     s.entities = entities;
+    let _ = rules;
     while (!is_eof(s)) {
         let ch = peek(s) ?? "";
         if (!is_inline_special(ch)) {
             consume_plain_text(s);
             continue;
         }
-        let matched = false;
-        for (let rule in rules) {
-            if (rule.parse(s)) {
-                matched = true;
-                break;
-            }
-        }
+        let matched = try_inline_special(s, ch);
         if (!matched) {
             let start = pos(s);
             let _ = bump(s);

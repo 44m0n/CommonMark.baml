@@ -35,7 +35,7 @@ class AtxHeadingStart {
             parser.close_unmatched();
             let rest = parser.scan.line.slice(parser.scan.pos, parser.scan.line.length());
             let open = open_heading(hashes);
-            open.string_content = strip_atx_closing(rest);
+            replace_content(open, strip_atx_closing(rest));
             parser.push_child(open);
             parser.advance_offset(parser.scan.line.length() - parser.scan.pos, false);
             StartMatch.Leaf

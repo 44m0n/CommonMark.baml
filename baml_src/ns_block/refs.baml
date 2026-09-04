@@ -147,26 +147,36 @@ function parse_link_title(s: string, i: int, table: map<string, string>) -> Scan
 
 function normalize_reference(raw_label: string) -> string {
     let inner = raw_label.slice(1, raw_label.length() - 1);
-    let out = "";
+    let parts: string[] = [];
     let i = 0;
     let last_space = false;
+    let started = false;
     while (i < inner.length()) {
         let c = inner.at(i) ?? "";
         if (c == " " || c == "\t" || c == "\n") {
-            if (!last_space && out.length() > 0) {
-                out = `${out} `;
+            if (started) {
                 last_space = true;
             }
+            i += 1;
         } else {
-            out = `${out}${c}`;
-            last_space = false;
+            if (last_space) {
+                parts.push(" ");
+                last_space = false;
+            }
+            let start = i;
+            i += 1;
+            while (i < inner.length()) {
+                let n = inner.at(i) ?? "";
+                if (n == " " || n == "\t" || n == "\n") {
+                    break;
+                }
+                i += 1;
+            }
+            parts.push(inner.slice(start, i));
+            started = true;
         }
-        i += 1;
     }
-    while (out.ends_with(" ")) {
-        out = out.slice(0, out.length() - 1);
-    }
-    out.to_lower_case().replace_all("ß", "ss")
+    parts.join("").to_lower_case().replace_all("ß", "ss")
 }
 
 function parse_one_reference(

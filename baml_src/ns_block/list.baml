@@ -146,6 +146,7 @@ function open_list_item(data: ListData) -> Open {
         ast: root.ast.ListItem { children: children, last_line_blank: false },
         children: children,
         string_content: "",
+        content_parts: [],
         is_fenced: false,
         fence_char: "",
         fence_length: 0,

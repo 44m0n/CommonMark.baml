@@ -12,7 +12,7 @@ class HtmlBlockOps {
             let _ = parser;
             if let h: root.ast.HtmlBlock = open.ast {
                 h.html_type = open.html_type;
-                h.literal = open.string_content;
+                h.literal = content_text(open);
             }
         }
 
@@ -286,16 +286,38 @@ function rest_only_space_tab(s: string, i: int) -> bool {
     true
 }
 
+function ascii_starts_with_ci(s: string, prefix: string) -> bool {
+    let n = prefix.length();
+    if (s.length() < n) {
+        return false;
+    }
+    let i = 0;
+    while (i < n) {
+        let ca = s.code_point_at(i) ?? 0;
+        let cb = prefix.code_point_at(i) ?? 0;
+        if (ca >= 65 && ca <= 90) {
+            ca += 32;
+        }
+        if (cb >= 65 && cb <= 90) {
+            cb += 32;
+        }
+        if (ca != cb) {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
 function html_block_type(s: string, allow_type7: bool) -> int? {
     if (s.at(0) != "<") {
         return null;
     }
-    let lower = s.to_lower_case();
     if (
-        lower.starts_with("<script")
-            || lower.starts_with("<pre")
-            || lower.starts_with("<style")
-            || lower.starts_with("<textarea")
+        ascii_starts_with_ci(s, "<script")
+            || ascii_starts_with_ci(s, "<pre")
+            || ascii_starts_with_ci(s, "<style")
+            || ascii_starts_with_ci(s, "<textarea")
     ) {
         let name = read_html_tag_name(s, 1) ?? "";
         let n = name.to_lower_case();
