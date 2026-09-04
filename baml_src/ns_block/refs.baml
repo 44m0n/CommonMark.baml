@@ -183,7 +183,7 @@ function normalize_reference(raw_label: string) -> string {
             started = true;
         }
     }
-    parts.join("").to_lower_case().replace_all("ß", "ss")
+    root.scan.unicode_case_fold(parts.join(""))
 }
 
 function parse_one_reference(
@@ -304,6 +304,11 @@ test "link definitions cannot interrupt a paragraph" {
 
 test "link reference spec" {
     assert.equal(root.spec.spec_failures("Link reference definitions"), 0)
+}
+
+test "reference labels match after unicode case folding" {
+    assert.equal(root.to_html("[Σ]: /u\n[ς]\n"), "<p><a href=\"/u\">ς</a></p>\n");
+    assert.equal(root.to_html("[ẞ]: /u\n[ss]\n"), "<p><a href=\"/u\">ss</a></p>\n")
 }
 
 test "link labels allow 999 characters but not 1000" {

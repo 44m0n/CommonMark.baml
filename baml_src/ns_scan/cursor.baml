@@ -71,6 +71,74 @@ function is_unicode_whitespace(ch: string) -> bool {
     ch == "\t" || ch == "\n" || ch == "\u{000C}" || ch == "\r" || ch.is_whitespace()
 }
 
+function case_fold_special(code: int) -> string? {
+    if (code == 0x00DF || code == 0x1E9E) {
+        "ss"
+    } else if (code == 0x0130) {
+        "i\u{0307}"
+    } else if (code == 0x0149) {
+        "\u{02BC}n"
+    } else if (code == 0x017F) {
+        "s"
+    } else if (code == 0x01F0) {
+        "j\u{030C}"
+    } else if (code == 0x0390) {
+        "ι\u{0308}\u{0301}"
+    } else if (code == 0x03B0) {
+        "υ\u{0308}\u{0301}"
+    } else if (code == 0x03C2) {
+        "σ"
+    } else if (code == 0x00B5) {
+        "μ"
+    } else if (code == 0x03D0) {
+        "β"
+    } else if (code == 0x03D1) {
+        "θ"
+    } else if (code == 0x03D5) {
+        "φ"
+    } else if (code == 0x03D6) {
+        "π"
+    } else if (code == 0x03F0) {
+        "κ"
+    } else if (code == 0x03F1) {
+        "ρ"
+    } else if (code == 0x03F5) {
+        "ε"
+    } else if (code == 0x0587) {
+        "եվ"
+    } else if (code == 0xFB00) {
+        "ff"
+    } else if (code == 0xFB01) {
+        "fi"
+    } else if (code == 0xFB02) {
+        "fl"
+    } else if (code == 0xFB03) {
+        "ffi"
+    } else if (code == 0xFB04) {
+        "ffl"
+    } else if (code == 0xFB05 || code == 0xFB06) {
+        "st"
+    } else {
+        null
+    }
+}
+
+function unicode_case_fold(s: string) -> string {
+    let parts: string[] = [];
+    let i = 0;
+    while (i < s.length()) {
+        let c = s.at(i) ?? "";
+        let code = c.code_point_at(0) ?? 0;
+        if let folded: string = case_fold_special(code) {
+            parts.push(folded);
+        } else {
+            parts.push(c.to_lower_case());
+        }
+        i += 1;
+    }
+    parts.join("")
+}
+
 test "preprocess replaces NUL with replacement character" {
     assert.equal(preprocess("a\u{0000}b"), "a\u{FFFD}b")
 }
