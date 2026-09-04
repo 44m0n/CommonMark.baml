@@ -90,23 +90,23 @@ function list_close_tag(list: root.ast.List) -> string {
     }
 }
 
-function render_document(document: root.ast.Document) -> string {
-    render_html_jobs(html_seq(document.children, ""))
+function render_document(document: root.ast.Document, safe: bool = false) -> string {
+    render_html_jobs(html_seq(document.children, ""), safe)
 }
 
-function render_block(block: root.ast.Block) -> string {
+function render_block(block: root.ast.Block, safe: bool = false) -> string {
     let blocks: root.ast.Block[] = [];
     blocks.push(block);
-    render_html_jobs(html_seq(blocks, ""))
+    render_html_jobs(html_seq(blocks, ""), safe)
 }
 
-function push_block_work(out: string[], jobs: HtmlJob[], b: root.ast.Block) -> void {
+function push_block_work(out: string[], jobs: HtmlJob[], b: root.ast.Block, safe: bool) -> void {
     match (b) {
         let p: root.ast.Paragraph => {
-            out.push(`<p>${render_inlines(p.children)}</p>\n`)
+            out.push(`<p>${render_inlines(p.children, safe = safe)}</p>\n`)
         },
         let h: root.ast.Heading => {
-            out.push(`<h${h.level}>${render_inlines(h.children)}</h${h.level}>\n`)
+            out.push(`<h${h.level}>${render_inlines(h.children, safe = safe)}</h${h.level}>\n`)
         },
         let _tb: root.ast.ThematicBreak => {
             out.push("<hr />\n")
@@ -115,7 +115,11 @@ function push_block_work(out: string[], jobs: HtmlJob[], b: root.ast.Block) -> v
             out.push(render_code_block(c))
         },
         let html: root.ast.HtmlBlock => {
-            out.push(html.literal)
+            if (safe) {
+                out.push("<!-- raw HTML omitted -->\n")
+            } else {
+                out.push(html.literal)
+            }
         },
         let q: root.ast.BlockQuote => {
             out.push("<blockquote>\n");
@@ -128,7 +132,7 @@ function push_block_work(out: string[], jobs: HtmlJob[], b: root.ast.Block) -> v
     }
 }
 
-function render_html_jobs(start: HtmlJob) -> string {
+function render_html_jobs(start: HtmlJob, safe: bool) -> string {
     let out: string[] = [];
     let jobs: HtmlJob[] = [];
     jobs.push(start);
@@ -143,7 +147,7 @@ function render_html_jobs(start: HtmlJob) -> string {
             } else {
                 let b = job.blocks[job.i];
                 job.i += 1;
-                push_block_work(out, jobs, b);
+                push_block_work(out, jobs, b, safe);
             }
         } else if (job.mode == "items") {
             if (job.i >= job.items.length()) {
@@ -164,7 +168,7 @@ function render_html_jobs(start: HtmlJob) -> string {
             job.i += 1;
             if (job.tight && b is root.ast.Paragraph) {
                 if let p: root.ast.Paragraph = b {
-                    let text = render_inlines(p.children);
+                    let text = render_inlines(p.children, safe = safe);
                     let chunk = if (more) {
                         `${text}\n`
                     } else {
@@ -178,19 +182,19 @@ function render_html_jobs(start: HtmlJob) -> string {
                     out.push("\n");
                 }
                 job.inner_ends_nl = block_html_ends_nl(b);
-                push_block_work(out, jobs, b);
+                push_block_work(out, jobs, b, safe);
             }
         }
     }
     out.join("")
 }
 
-function render_paragraph(p: root.ast.Paragraph) -> string {
-    `<p>${render_inlines(p.children)}</p>\n`
+function render_paragraph(p: root.ast.Paragraph, safe: bool = false) -> string {
+    `<p>${render_inlines(p.children, safe = safe)}</p>\n`
 }
 
-function render_heading(h: root.ast.Heading) -> string {
-    `<h${h.level}>${render_inlines(h.children)}</h${h.level}>\n`
+function render_heading(h: root.ast.Heading, safe: bool = false) -> string {
+    `<h${h.level}>${render_inlines(h.children, safe = safe)}</h${h.level}>\n`
 }
 
 function first_info_word(info: string) -> string {
@@ -215,7 +219,7 @@ function render_code_block(c: root.ast.CodeBlock) -> string {
     `<pre><code${info}>${escape_html(c.literal)}</code></pre>\n`
 }
 
-function render_inlines(inlines: root.ast.Inline[]) -> string {
+function render_inlines(inlines: root.ast.Inline[], safe: bool = false) -> string {
     let out: string[] = [];
     let jobs: InlineJob[] = [];
     jobs.push(InlineJob { nodes: inlines, i: 0, close: "" });
@@ -256,17 +260,21 @@ function render_inlines(inlines: root.ast.Inline[]) -> string {
                     } else {
                         ""
                     };
-                    out.push(`<a href="${escape_href(l.destination)}"${title}>`);
+                    out.push(`<a href="${safe_href(l.destination, safe)}"${title}>`);
                     jobs.push(InlineJob { nodes: l.children, i: 0, close: "</a>" });
                 },
                 let im: root.ast.Image => {
-                    out.push(render_image(im))
+                    out.push(render_image(im, safe = safe))
                 },
                 let h: root.ast.HtmlInline => {
-                    out.push(h.literal)
+                    if (safe) {
+                        out.push("<!-- raw HTML omitted -->")
+                    } else {
+                        out.push(h.literal)
+                    }
                 },
                 let a: root.ast.Autolink => {
-                    out.push(render_autolink(a))
+                    out.push(render_autolink(a, safe = safe))
                 },
             }
         }
@@ -274,22 +282,22 @@ function render_inlines(inlines: root.ast.Inline[]) -> string {
     out.join("")
 }
 
-function render_image(i: root.ast.Image) -> string {
+function render_image(i: root.ast.Image, safe: bool = false) -> string {
     let title = if let t: string = i.title {
         ` title="${escape_html(t)}"`
     } else {
         ""
     };
-    `<img src="${escape_href(i.destination)}" alt="${escape_html(root.inline.image_plain_nodes(i.children))}"${title} />`
+    `<img src="${safe_href(i.destination, safe)}" alt="${escape_html(root.inline.image_plain_nodes(i.children))}"${title} />`
 }
 
-function render_autolink(a: root.ast.Autolink) -> string {
+function render_autolink(a: root.ast.Autolink, safe: bool = false) -> string {
     let href = if (a.email) {
         `mailto:${a.destination}`
     } else {
         a.destination
     };
-    `<a href="${escape_href(href)}">${escape_html(a.destination)}</a>`
+    `<a href="${safe_href(href, safe)}">${escape_html(a.destination)}</a>`
 }
 
 function escape_html(s: string) -> string {
@@ -398,6 +406,23 @@ function escape_href(s: string) -> string {
         i += 1;
     }
     parts.join("")
+}
+
+function dangerous_url(url: string) -> bool {
+    let i = 0;
+    while (i < url.length() && (url.at(i) == " " || url.at(i) == "\t")) {
+        i += 1;
+    }
+    let rest = url.slice(i, url.length()).to_lower_case();
+    rest.starts_with("javascript:") || rest.starts_with("vbscript:") || rest.starts_with("data:")
+}
+
+function safe_href(url: string, safe: bool) -> string {
+    if (safe && dangerous_url(url)) {
+        ""
+    } else {
+        escape_href(url)
+    }
 }
 
 test "deep nested lists render" {

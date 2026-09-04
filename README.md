@@ -6,11 +6,13 @@ A CommonMark 0.31.2 parser in [BAML](https://docs.boundaryml.com): Markdown → 
 
 ```baml
 function parse(markdown: string, options: ParseOptions = commonmark_options()) -> Document
-function render_html(document: Document) -> string
-function to_html(markdown: string, options: ParseOptions = commonmark_options()) -> string
+function render_html(document: Document, safe: bool = false) -> string
+function to_html(markdown: string, options: ParseOptions = commonmark_options(), safe: bool = false) -> string
 ```
 
 Call `parse(md)` / `to_html(md)` for CommonMark. A future dialect would pass `options` by name: `parse(md, options = gfm_options())`.
+
+`to_html` is **not** safe for untrusted Markdown: raw HTML and URL schemes such as `javascript:` pass through, matching CommonMark. Pass `safe = true` to omit raw HTML (`<!-- raw HTML omitted -->`) and to empty `javascript:`, `vbscript:`, and `data:` `href`/`src` values.
 
 ## CLI
 
