@@ -4,10 +4,9 @@ class EntityScan {
 }
 
 function load_named_entities() -> map<string, string> {
-    baml.json.from_string<map<string, string>>(baml.fs.read("vendor/html5-entities.json")) catch_all (e) {
+    baml.json.from_string<map<string, string>>(named_entities_json()) catch_all (e) {
         _ => {
-            let empty: map<string, string> = {};
-            empty
+            baml.sys.panic("named entity table is corrupt")
         }
     }
 }
@@ -178,4 +177,12 @@ class EntityRule {
             false
         }
     }
+}
+
+test "named entity table includes copy" {
+    assert.equal(load_named_entities().get("copy"), "©")
+}
+
+test "named copy entity renders as copyright sign" {
+    assert.equal(root.to_html("&copy;"), "<p>©</p>\n")
 }
