@@ -1,8 +1,25 @@
-function parse_inlines(raw: string, refs: map<string, root.ast.LinkRef>) -> root.ast.Inline[] {
+function is_inline_special(c: string) -> bool {
+    c == "\\"
+        || c == "`"
+        || c == "*"
+        || c == "_"
+        || c == "["
+        || c == "]"
+        || c == "!"
+        || c == "<"
+        || c == "&"
+        || c == "\n"
+}
+
+function parse_inlines(
+    raw: string,
+    refs: map<string, root.ast.LinkRef>,
+    entities: map<string, string> = load_named_entities(),
+    rules: InlineParseRule[] = commonmark_inline_rules(),
+) -> root.ast.Inline[] {
     let s = subject(raw);
     s.refs = refs;
-    s.entities = load_named_entities();
-    let rules = commonmark_inline_rules();
+    s.entities = entities;
     while (!is_eof(s)) {
         let matched = false;
         for (let rule in rules) {
@@ -12,7 +29,19 @@ function parse_inlines(raw: string, refs: map<string, root.ast.LinkRef>) -> root
             }
         }
         if (!matched) {
-            push_text(s, bump(s) ?? "");
+            let start = pos(s);
+            let ch = peek(s) ?? "";
+            let _ = bump(s);
+            if (!is_inline_special(ch)) {
+                while (!is_eof(s)) {
+                    let n = peek(s) ?? "";
+                    if (is_inline_special(n)) {
+                        break;
+                    }
+                    let _ = bump(s);
+                }
+            }
+            push_text(s, s.scan.line.slice(start, pos(s)));
         }
     }
     let _ = trim_trailing_spaces(s);

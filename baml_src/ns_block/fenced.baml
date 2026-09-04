@@ -91,12 +91,15 @@ function skip_fence_indent(parser: Parser, fence_offset: int) -> void {
     }
 }
 
-function fenced_info_and_literal(content: string) -> root.ast.CodeBlock {
+function fenced_info_and_literal(
+    content: string,
+    table: map<string, string>,
+) -> root.ast.CodeBlock {
     let nl = content.index_of("\n");
     if (nl == null) {
         root.ast.CodeBlock {
             fenced: true,
-            info: root.block.unescape_string(content.trim()),
+            info: root.block.unescape_string(content.trim(), table = table),
             literal: "",
             last_line_blank: false,
         }
@@ -105,7 +108,7 @@ function fenced_info_and_literal(content: string) -> root.ast.CodeBlock {
         let rest = content.slice(nl + 1, content.length());
         root.ast.CodeBlock {
             fenced: true,
-            info: root.block.unescape_string(first.trim()),
+            info: root.block.unescape_string(first.trim(), table = table),
             literal: rest,
             last_line_blank: false,
         }

@@ -212,7 +212,7 @@ class ParagraphOps {
         }
 
         function finalize(self, parser: Parser, open: Open) -> void throws never {
-            let remaining = consume_link_reference_definitions(open.string_content, parser.document.refs);
+            let remaining = consume_link_reference_definitions(open.string_content, parser.document.refs, table = parser.entities);
             if (is_blank_text(strip_final_newline(remaining))) {
                 unlink_block(parser, open.ast);
                 return;
@@ -356,10 +356,9 @@ class CodeBlockOps {
         }
 
         function finalize(self, parser: Parser, open: Open) -> void throws never {
-            let _ = parser;
             if let c: root.ast.CodeBlock = open.ast {
                 if (open.is_fenced) {
-                    let parsed = fenced_info_and_literal(open.string_content);
+                    let parsed = fenced_info_and_literal(open.string_content, table = parser.entities);
                     c.fenced = true;
                     c.info = parsed.info;
                     c.literal = parsed.literal;

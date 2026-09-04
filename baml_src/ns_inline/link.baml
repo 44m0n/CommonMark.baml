@@ -27,7 +27,7 @@ function try_inline_link(s: Subject) -> root.ast.LinkRef? {
     if (peek(s) == ")") {
         dest = "";
     } else {
-        let d = root.block.parse_link_destination(s.scan.line, s.scan.pos);
+        let d = root.block.parse_link_destination(s.scan.line, s.scan.pos, table = s.entities);
         if (d == null) {
             advance_to(s, save);
             return null;
@@ -39,7 +39,7 @@ function try_inline_link(s: Subject) -> root.ast.LinkRef? {
     let title: string? = null;
     if (whitespace_before(s) || peek(s) == ")") {
         if (peek(s) != ")") {
-            let t = root.block.parse_link_title(s.scan.line, s.scan.pos);
+            let t = root.block.parse_link_title(s.scan.line, s.scan.pos, table = s.entities);
             if let tv: root.block.ScanPiece = t {
                 title = tv.value;
                 advance_to(s, tv.end);

@@ -17,7 +17,7 @@ class SetextHeadingStart {
                 return StartMatch.None;
             }
             parser.close_unmatched();
-            let remaining = consume_link_reference_definitions(container.string_content, parser.document.refs);
+            let remaining = consume_link_reference_definitions(container.string_content, parser.document.refs, table = parser.entities);
             if (is_blank_text(strip_final_newline(remaining))) {
                 return StartMatch.None;
             }

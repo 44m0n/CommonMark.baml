@@ -132,30 +132,29 @@ function scan_entity(line: string, i: int, table: map<string, string>) -> Entity
     scan_decimal_entity(line, i)
 }
 
-function unescape_markdown(s: string) -> string {
-    let table = load_named_entities();
-    let out = "";
+function unescape_markdown(s: string, table: map<string, string>) -> string {
+    let parts: string[] = [];
     let i = 0;
     while (i < s.length()) {
         let c = s.at(i) ?? "";
         if (c == "\\" && root.block.is_escapable(s.at(i + 1))) {
-            out = `${out}${s.at(i + 1) ?? ""}`;
+            parts.push(s.at(i + 1) ?? "");
             i += 2;
         } else if (c == "&") {
             let ent = scan_entity(s, i, table);
             if let e: EntityScan = ent {
-                out = `${out}${e.value}`;
+                parts.push(e.value);
                 i = e.end;
             } else {
-                out = `${out}${c}`;
+                parts.push(c);
                 i += 1;
             }
         } else {
-            out = `${out}${c}`;
+            parts.push(c);
             i += 1;
         }
     }
-    out
+    parts.join("")
 }
 
 class EntityRule {

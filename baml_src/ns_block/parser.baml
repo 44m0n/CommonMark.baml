@@ -1,6 +1,7 @@
 class Parser {
     options: ParseOptions,
     document: root.ast.Document,
+    entities: map<string, string>,
     stack: Open[],
     scan: root.scan.LineScan,
     next_nonspace: int,
@@ -201,11 +202,16 @@ class Parser {
     }
 }
 
-function new_parser(options: ParseOptions, document: root.ast.Document) -> Parser {
+function new_parser(
+    options: ParseOptions,
+    document: root.ast.Document,
+    entities: map<string, string>,
+) -> Parser {
     let stack: Open[] = [];
     Parser {
         options: options,
         document: document,
+        entities: entities,
         stack: stack,
         scan: root.scan.line_scan(""),
         next_nonspace: 0,
@@ -222,8 +228,9 @@ function new_parser(options: ParseOptions, document: root.ast.Document) -> Parse
 function parse_document(markdown: string, options: ParseOptions) -> root.ast.Document {
     let input = root.scan.preprocess(markdown);
     let refs: map<string, root.ast.LinkRef> = {};
+    let entities = root.inline.load_named_entities();
     let document = root.ast.Document { children: [], refs: refs };
-    let p = new_parser(options, document);
+    let p = new_parser(options, document, entities = entities);
     let _ = p.stack.push(make_document_open(document));
     //# Grow the document from each input line
     for (let line in input.lines()) {
@@ -232,35 +239,45 @@ function parse_document(markdown: string, options: ParseOptions) -> root.ast.Doc
     while (p.stack.length() > 0) {
         p.finalize_tip();
     }
-    parse_inlines_tree(document);
+    parse_inlines_tree(document, entities = entities);
     document
 }
 
-function parse_inlines_tree(document: root.ast.Document) -> void {
-    parse_inlines_blocks(document.children, document.refs)
+function parse_inlines_tree(document: root.ast.Document, entities: map<string, string>) -> void {
+    let rules = root.inline.commonmark_inline_rules();
+    parse_inlines_blocks(document.children, document.refs, entities = entities, rules = rules)
 }
 
 function parse_inlines_blocks(
     blocks: root.ast.Block[],
     refs: map<string, root.ast.LinkRef>,
+    entities: map<string, string>,
+    rules: root.inline.InlineParseRule[],
 ) -> void {
     for (let b in blocks) {
-        parse_inlines_block(b, refs);
+        parse_inlines_block(b, refs, entities = entities, rules = rules);
     }
 }
 
-function parse_inlines_block(b: root.ast.Block, refs: map<string, root.ast.LinkRef>) -> void {
+function parse_inlines_block(
+    b: root.ast.Block,
+    refs: map<string, root.ast.LinkRef>,
+    entities: map<string, string>,
+    rules: root.inline.InlineParseRule[],
+) -> void {
     match (b) {
         let p: root.ast.Paragraph => {
-            p.children = root.inline.parse_inlines(p.raw, refs);
+            p.children = root.inline.parse_inlines(p.raw, refs, entities = entities, rules = rules);
         },
         let h: root.ast.Heading => {
-            h.children = root.inline.parse_inlines(h.raw, refs);
+            h.children = root.inline.parse_inlines(h.raw, refs, entities = entities, rules = rules);
         },
-        let q: root.ast.BlockQuote => parse_inlines_blocks(q.children, refs),
+        let q: root.ast.BlockQuote => {
+            parse_inlines_blocks(q.children, refs, entities = entities, rules = rules)
+        },
         let l: root.ast.List => {
             for (let item in l.children) {
-                parse_inlines_blocks(item.children, refs);
+                parse_inlines_blocks(item.children, refs, entities = entities, rules = rules);
             }
         },
         _ => {},

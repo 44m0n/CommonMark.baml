@@ -191,7 +191,7 @@ function percent_encode_char(ch: string) -> string {
 }
 
 function escape_href(s: string) -> string {
-    let out = "";
+    let parts: string[] = [];
     let i = 0;
     let chars = s.chars();
     while (i < chars.length()) {
@@ -200,20 +200,20 @@ function escape_href(s: string) -> string {
             let n1 = chars.at(i + 1) ?? "";
             let n2 = chars.at(i + 2) ?? "";
             if (n1.is_ascii_hex() && n2.is_ascii_hex()) {
-                out = `${out}%${n1}${n2}`;
+                parts.push(`%${n1}${n2}`);
                 i += 3;
                 continue;
             }
         }
         let code = ch.code_point_at(0) ?? 0;
         if (ch == "&") {
-            out = `${out}&amp;`;
+            parts.push("&amp;");
         } else if (href_keep_ascii(code)) {
-            out = `${out}${ch}`;
+            parts.push(ch);
         } else {
-            out = `${out}${percent_encode_char(ch)}`;
+            parts.push(percent_encode_char(ch));
         }
         i += 1;
     }
-    out
+    parts.join("")
 }

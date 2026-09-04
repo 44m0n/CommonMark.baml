@@ -6,8 +6,8 @@ function is_escapable(c: string?) -> bool {
     }
 }
 
-function unescape_string(s: string) -> string {
-    root.inline.unescape_markdown(s)
+function unescape_string(s: string, table: map<string, string>) -> string {
+    root.inline.unescape_markdown(s, table = table)
 }
 
 function skip_spaces_tabs(s: string, i: int) -> int {
@@ -67,7 +67,7 @@ class ScanPiece {
     value: string,
 }
 
-function parse_link_destination(s: string, i: int) -> ScanPiece? {
+function parse_link_destination(s: string, i: int, table: map<string, string>) -> ScanPiece? {
     if (s.at(i) == "<") {
         let j = i + 1;
         while (j < s.length()) {
@@ -81,7 +81,7 @@ function parse_link_destination(s: string, i: int) -> ScanPiece? {
                     j += 1;
                 }
             } else if (c == ">") {
-                return ScanPiece { end: j + 1, value: unescape_string(s.slice(i + 1, j)) };
+                return ScanPiece { end: j + 1, value: unescape_string(s.slice(i + 1, j), table = table) };
             } else {
                 j += 1;
             }
@@ -112,10 +112,10 @@ function parse_link_destination(s: string, i: int) -> ScanPiece? {
     if (i == save || open_parens != 0) {
         return null;
     }
-    ScanPiece { end: i, value: unescape_string(s.slice(save, i)) }
+    ScanPiece { end: i, value: unescape_string(s.slice(save, i), table = table) }
 }
 
-function parse_link_title(s: string, i: int) -> ScanPiece? {
+function parse_link_title(s: string, i: int, table: map<string, string>) -> ScanPiece? {
     let opener = s.at(i);
     if (opener != "\"" && opener != "'" && opener != "(") {
         return null;
@@ -137,7 +137,7 @@ function parse_link_title(s: string, i: int) -> ScanPiece? {
                 j += 1;
             }
         } else if (c == closer) {
-            return ScanPiece { end: j + 1, value: unescape_string(s.slice(i + 1, j)) };
+            return ScanPiece { end: j + 1, value: unescape_string(s.slice(i + 1, j), table = table) };
         } else {
             j += 1;
         }
@@ -169,7 +169,11 @@ function normalize_reference(raw_label: string) -> string {
     out.to_lower_case().replace_all("ß", "ss")
 }
 
-function parse_one_reference(s: string, refs: map<string, root.ast.LinkRef>) -> int {
+function parse_one_reference(
+    s: string,
+    refs: map<string, root.ast.LinkRef>,
+    table: map<string, string>,
+) -> int {
     if (s.at(0) != "[") {
         return 0;
     }
@@ -181,7 +185,7 @@ function parse_one_reference(s: string, refs: map<string, root.ast.LinkRef>) -> 
         return 0;
     }
     let after_colon = skip_spnl(s, label_end + 1);
-    let dest = parse_link_destination(s, after_colon);
+    let dest = parse_link_destination(s, after_colon, table = table);
     if let d: ScanPiece = dest {
         let dest_end = d.end;
         let destination = d.value;
@@ -189,7 +193,7 @@ function parse_one_reference(s: string, refs: map<string, root.ast.LinkRef>) -> 
         let i = skip_spnl(s, dest_end);
         let title: string? = null;
         if (i != before_title) {
-            let t = parse_link_title(s, i);
+            let t = parse_link_title(s, i, table = table);
             if let tv: ScanPiece = t {
                 i = tv.end;
                 title = tv.value;
@@ -226,10 +230,11 @@ function parse_one_reference(s: string, refs: map<string, root.ast.LinkRef>) -> 
 function consume_link_reference_definitions(
     s: string,
     refs: map<string, root.ast.LinkRef>,
+    table: map<string, string>,
 ) -> string {
     let rest = s;
     while (rest.at(0) == "[") {
-        let n = parse_one_reference(rest, refs);
+        let n = parse_one_reference(rest, refs, table = table);
         if (n == 0) {
             break;
         }
