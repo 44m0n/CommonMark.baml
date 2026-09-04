@@ -220,7 +220,6 @@ class EmphasisRule {
                         kind: ch ?? "*",
                         count: info.count,
                         orig_count: info.count,
-                        active: true,
                         can_open: info.can_open,
                         can_close: info.can_close,
                         cell: s.tail ?? dummy_cell(),
