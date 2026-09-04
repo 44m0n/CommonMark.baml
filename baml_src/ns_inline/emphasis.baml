@@ -49,27 +49,6 @@ function scan_delims(s: Subject, marker: string) -> DelimScan {
     }
 }
 
-function shift_inline_indices(s: Subject, from: int, delta: int) -> void {
-    for (let d in s.delimiters) {
-        if (d.inline_index >= from) {
-            d.inline_index += delta;
-        }
-    }
-    for (let b in s.brackets) {
-        if (b.inline_index >= from) {
-            b.inline_index += delta;
-        }
-    }
-}
-
-function replace_inlines(s: Subject, start: int, count: int, repl: root.ast.Inline[]) -> void {
-    s.inlines.splice(start, count, repl) catch (e) {
-        baml.errors.InvalidArgument => {
-            baml.sys.panic("inline splice out of range")
-        }
-    }
-}
-
 function replace_delimiters(s: Subject, start: int, count: int, repl: Delimiter[]) -> void {
     s.delimiters.splice(start, count, repl) catch (e) {
         baml.errors.InvalidArgument => {
@@ -78,40 +57,29 @@ function replace_delimiters(s: Subject, start: int, count: int, repl: Delimiter[
     }
 }
 
-function remove_inline_at(s: Subject, idx: int) -> void {
-    let _ = s.inlines.remove_at(idx);
-    shift_inline_indices(s, idx + 1, 0 - 1)
+function trim_delim_text(cell: InlineCell, use_delims: int) -> void {
+    if let t: root.ast.Text = cell.node {
+        t.literal = t.literal.slice(0, t.literal.length() - use_delims);
+    }
 }
 
 function wrap_between(s: Subject, opener: Delimiter, closer: Delimiter, use_delims: int) -> void {
-    let oi = opener.inline_index;
-    let ci = closer.inline_index;
-    let opener_node = s.inlines[oi];
-    let closer_node = s.inlines[ci];
-    if (opener_node is root.ast.Text) {
-        opener_node.literal
-            = opener_node.literal.slice(0, opener_node.literal.length() - use_delims);
-    }
-    if (closer_node is root.ast.Text) {
-        closer_node.literal
-            = closer_node.literal.slice(0, closer_node.literal.length() - use_delims);
-    }
-    let kids = s.inlines.slice(oi + 1, ci);
+    trim_delim_text(opener.cell, use_delims);
+    trim_delim_text(closer.cell, use_delims);
+    let kids = take_between(opener.cell, closer.cell);
     let wrapped: root.ast.Inline = if (use_delims == 1) {
         root.ast.Emph { children: kids }
     } else {
         root.ast.Strong { children: kids }
     };
-    let removed = ci - oi - 1;
-    replace_inlines(s, oi + 1, removed, [wrapped]);
-    shift_inline_indices(s, ci, 1 - removed);
+    let _ = insert_after(s, opener.cell, wrapped);
     opener.count -= use_delims;
     closer.count -= use_delims;
     if (opener.count == 0) {
-        remove_inline_at(s, opener.inline_index);
+        unlink_cell(s, opener.cell);
     }
     if (closer.count == 0) {
-        remove_inline_at(s, closer.inline_index);
+        unlink_cell(s, closer.cell);
     }
 }
 
@@ -227,7 +195,7 @@ class EmphasisRule {
                         active: true,
                         can_open: info.can_open,
                         can_close: info.can_close,
-                        inline_index: s.inlines.length() - 1,
+                        cell: s.tail ?? dummy_cell(),
                     },
                 );
                 s.last_protected = true;

@@ -150,8 +150,16 @@ function unescape_markdown(s: string, table: map<string, string>) -> string {
                 i += 1;
             }
         } else {
-            parts.push(c);
+            let start = i;
             i += 1;
+            while (i < s.length()) {
+                let n = s.at(i) ?? "";
+                if (n == "\\" || n == "&") {
+                    break;
+                }
+                i += 1;
+            }
+            parts.push(s.slice(start, i));
         }
     }
     parts.join("")

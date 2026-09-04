@@ -1,20 +1,20 @@
 function trim_trailing_spaces(s: Subject) -> int {
-    if (s.inlines.length() == 0) {
-        return 0;
-    }
-    let last = s.inlines[s.inlines.length() - 1];
-    if (last is root.ast.Text) {
-        let n = 0;
-        while (last.literal.ends_with(" ") || last.literal.ends_with("\t")) {
-            if (last.literal.ends_with(" ")) {
-                n += 1;
+    if let last: InlineCell = s.tail {
+        if let lit: root.ast.Text = last.node {
+            let n = 0;
+            while (lit.literal.ends_with(" ") || lit.literal.ends_with("\t")) {
+                if (lit.literal.ends_with(" ")) {
+                    n += 1;
+                }
+                lit.literal = lit.literal.slice(0, lit.literal.length() - 1);
             }
-            last.literal = last.literal.slice(0, last.literal.length() - 1);
+            if (lit.literal.length() == 0) {
+                unlink_cell(s, last);
+            }
+            n
+        } else {
+            0
         }
-        if (last.literal.length() == 0) {
-            let _ = s.inlines.pop();
-        }
-        n
     } else {
         0
     }

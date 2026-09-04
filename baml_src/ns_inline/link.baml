@@ -92,16 +92,14 @@ function deactivate_link_openers(s: Subject) -> void {
 
 function wrap_link(s: Subject, opener: Bracket, dest: string, title: string?, image: bool) -> void {
     process_emphasis(s, opener.delim_bottom);
-    let oi = opener.inline_index;
-    let kids = s.inlines.slice(oi + 1, s.inlines.length());
+    let kids = take_after(s, opener.cell);
     let wrapped: root.ast.Inline = if (image) {
         root.ast.Image { destination: dest, title: title, children: kids }
     } else {
         root.ast.Link { destination: dest, title: title, children: kids }
     };
-    let count = s.inlines.length() - oi - 1;
-    replace_inlines(s, oi + 1, count, [wrapped]);
-    remove_inline_at(s, oi);
+    let _ = insert_after(s, opener.cell, wrapped);
+    unlink_cell(s, opener.cell);
     let _ = s.brackets.pop();
     if (!image) {
         deactivate_link_openers(s);
@@ -134,7 +132,7 @@ class BangRule {
                     image: true,
                     active: true,
                     bracket_after: false,
-                    inline_index: s.inlines.length() - 1,
+                    cell: s.tail ?? dummy_cell(),
                     opener_pos: opener_pos,
                     delim_bottom: s.delimiters.length(),
                 },
@@ -167,7 +165,7 @@ class OpenBracketRule {
                     image: false,
                     active: true,
                     bracket_after: false,
-                    inline_index: s.inlines.length() - 1,
+                    cell: s.tail ?? dummy_cell(),
                     opener_pos: opener_pos,
                     delim_bottom: s.delimiters.length(),
                 },

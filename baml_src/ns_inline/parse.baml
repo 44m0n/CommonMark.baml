@@ -11,6 +11,18 @@ function is_inline_special(c: string) -> bool {
         || c == "\n"
 }
 
+function consume_plain_text(s: Subject) -> void {
+    let start = pos(s);
+    while (!is_eof(s)) {
+        let n = peek(s) ?? "";
+        if (is_inline_special(n)) {
+            break;
+        }
+        let _ = bump(s);
+    }
+    push_text(s, s.scan.line.slice(start, pos(s)));
+}
+
 function parse_inlines(
     raw: string,
     refs: map<string, root.ast.LinkRef>,
@@ -21,6 +33,11 @@ function parse_inlines(
     s.refs = refs;
     s.entities = entities;
     while (!is_eof(s)) {
+        let ch = peek(s) ?? "";
+        if (!is_inline_special(ch)) {
+            consume_plain_text(s);
+            continue;
+        }
         let matched = false;
         for (let rule in rules) {
             if (rule.parse(s)) {
@@ -30,23 +47,13 @@ function parse_inlines(
         }
         if (!matched) {
             let start = pos(s);
-            let ch = peek(s) ?? "";
             let _ = bump(s);
-            if (!is_inline_special(ch)) {
-                while (!is_eof(s)) {
-                    let n = peek(s) ?? "";
-                    if (is_inline_special(n)) {
-                        break;
-                    }
-                    let _ = bump(s);
-                }
-            }
             push_text(s, s.scan.line.slice(start, pos(s)));
         }
     }
     let _ = trim_trailing_spaces(s);
     process_emphasis(s, 0);
-    s.inlines
+    flatten_inlines(s)
 }
 
 test "parse_inlines returns empty for empty string" {

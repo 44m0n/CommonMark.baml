@@ -5,7 +5,7 @@ class Delimiter {
     active: bool,
     can_open: bool,
     can_close: bool,
-    inline_index: int,
+    cell: InlineCell,
 }
 
 class DelimiterStack {
@@ -16,7 +16,7 @@ class Bracket {
     image: bool,
     active: bool,
     bracket_after: bool,
-    inline_index: int,
+    cell: InlineCell,
     opener_pos: int,
     delim_bottom: int,
 }
@@ -48,7 +48,7 @@ test "push and pop maintain LIFO order" {
             active: true,
             can_open: true,
             can_close: false,
-            inline_index: 0,
+            cell: dummy_cell(),
         },
     );
     stack_push(
@@ -60,7 +60,7 @@ test "push and pop maintain LIFO order" {
             active: true,
             can_open: false,
             can_close: true,
-            inline_index: 1,
+            cell: dummy_cell(),
         },
     );
     let top = stack_top(stack);
@@ -81,7 +81,7 @@ test "delimiter records open and close flags" {
         active: true,
         can_open: true,
         can_close: false,
-        inline_index: 0,
+        cell: dummy_cell(),
     };
     assert.is_true(d.can_open);
     assert.equal(d.can_close, false);
