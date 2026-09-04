@@ -5,9 +5,11 @@ function trim_trailing_spaces(s: Subject) -> int {
     let last = s.inlines[s.inlines.length() - 1];
     if (last is root.ast.Text) {
         let n = 0;
-        while (last.literal.ends_with(" ")) {
+        while (last.literal.ends_with(" ") || last.literal.ends_with("\t")) {
+            if (last.literal.ends_with(" ")) {
+                n += 1;
+            }
             last.literal = last.literal.slice(0, last.literal.length() - 1);
-            n += 1;
         }
         if (last.literal.length() == 0) {
             let _ = s.inlines.pop();
@@ -39,4 +41,13 @@ class NewlineRule {
             true
         }
     }
+}
+
+test "trailing tab before a newline is a soft break" {
+    assert.equal(root.to_html("foo\t\nbar\n"), "<p>foo\nbar</p>\n");
+    assert.equal(root.to_html("foo\t\t\nbar\n"), "<p>foo\nbar</p>\n")
+}
+
+test "two trailing spaces before a newline stay a hard break" {
+    assert.equal(root.to_html("foo  \nbar\n"), "<p>foo<br />\nbar</p>\n")
 }
