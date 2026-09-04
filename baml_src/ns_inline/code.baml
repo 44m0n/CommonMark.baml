@@ -37,11 +37,40 @@ class CodeSpanRule {
             }
             let content = line.slice(s.scan.pos, found).replace_all("\n", " ");
             advance_to(s, found + n);
-            if (content.starts_with(" ") && content.ends_with(" ") && content.trim().length() > 0) {
-                content = content.slice(1, content.length() - 1);
-            }
-            push_node(s, root.ast.CodeSpan { literal: content });
+            push_node(s, root.ast.CodeSpan { literal: strip_code_span_spaces(content) });
             true
         }
     }
+}
+
+function code_span_has_non_space(s: string) -> bool {
+    let i = 0;
+    while (i < s.length()) {
+        if (s.at(i) != " ") {
+            return true;
+        }
+        i += 1;
+    }
+    false
+}
+
+function strip_code_span_spaces(content: string) -> string {
+    if (content.starts_with(" ") && content.ends_with(" ") && code_span_has_non_space(content)) {
+        content.slice(1, content.length() - 1)
+    } else {
+        content
+    }
+}
+
+test "code span strips only ascii spaces not unicode whitespace" {
+    let nbsp = string.from_code_points([0x00A0]) catch (e) {
+        baml.errors.InvalidArgument => ""
+    };
+    let prefix = "` ";
+    let suffix = " `\n";
+    assert.equal(root.to_html(`${prefix}${nbsp}${suffix}`), `<p><code>${nbsp}</code></p>\n`)
+}
+
+test "code span of only ascii spaces keeps them" {
+    assert.equal(root.to_html("`  `\n"), "<p><code>  </code></p>\n")
 }
