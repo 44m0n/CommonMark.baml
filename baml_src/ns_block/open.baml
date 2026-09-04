@@ -59,6 +59,15 @@ function open_indented_code() -> Open {
     make_open("code_block", CodeBlockOps {  }, root.ast.CodeBlock { fenced: false, info: "", literal: "" })
 }
 
+function open_fenced_code(fence_char: string, fence_length: int, fence_offset: int) -> Open {
+    let o = make_open("code_block", CodeBlockOps {  }, root.ast.CodeBlock { fenced: true, info: "", literal: "" });
+    o.is_fenced = true;
+    o.fence_char = fence_char;
+    o.fence_length = fence_length;
+    o.fence_offset = fence_offset;
+    o
+}
+
 function strip_final_newline(s: string) -> string {
     if (s.ends_with("\n")) {
         s.slice(0, s.length() - 1)
@@ -232,7 +241,12 @@ class CodeBlockOps {
     implements BlockOps {
         function continue_line(self, parser: Parser, open: Open) -> ContinueResult throws never {
             if (open.is_fenced) {
-                return ContinueResult.Stop;
+                if (is_closing_fence(parser, open)) {
+                    parser.finalize_tip();
+                    return ContinueResult.Done;
+                }
+                skip_fence_indent(parser, open.fence_offset);
+                return ContinueResult.Ok;
             }
             if (parser.indent >= 4) {
                 parser.advance_offset(4, true);
@@ -248,7 +262,12 @@ class CodeBlockOps {
         function finalize(self, parser: Parser, open: Open) -> void throws never {
             let _ = parser;
             if let c: root.ast.CodeBlock = open.ast {
-                if (!open.is_fenced) {
+                if (open.is_fenced) {
+                    let parsed = fenced_info_and_literal(open.string_content);
+                    c.fenced = true;
+                    c.info = parsed.info;
+                    c.literal = parsed.literal;
+                } else {
                     c.literal = indented_code_literal(open.string_content);
                 }
             }

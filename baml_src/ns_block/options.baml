@@ -35,7 +35,12 @@ class ParseOptions {
 
 function commonmark_options() -> ParseOptions {
     ParseOptions {
-        block_starts: [AtxHeadingStart {  }, ThematicBreakStart {  }, IndentedCodeStart {  }],
+        block_starts: [
+            AtxHeadingStart {  },
+            FencedCodeStart {  },
+            ThematicBreakStart {  },
+            IndentedCodeStart {  },
+        ],
         inline_rules: [],
     }
 }

@@ -27,8 +27,9 @@ function render_heading(h: root.ast.Heading) -> string {
 }
 
 function render_code_block(c: root.ast.CodeBlock) -> string {
-    let info = if (c.info) {
-        ` class="language-${c.info.split(" ").at(0) ?? c.info}"`
+    let lang = c.info.split(" ").at(0) ?? "";
+    let info = if (lang) {
+        ` class="language-${escape_html(lang)}"`
     } else {
         ""
     };
