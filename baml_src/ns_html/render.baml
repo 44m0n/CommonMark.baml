@@ -1,21 +1,188 @@
+class InlineJob {
+    nodes: root.ast.Inline[],
+    i: int,
+    close: string,
+}
+
+class HtmlJob {
+    mode: string,
+    blocks: root.ast.Block[],
+    items: root.ast.ListItem[],
+    i: int,
+    close: string,
+    tight: bool,
+    inner_ends_nl: bool,
+}
+
+function html_seq(blocks: root.ast.Block[], close: string) -> HtmlJob {
+    let items: root.ast.ListItem[] = [];
+    HtmlJob {
+        mode: "seq",
+        blocks: blocks,
+        items: items,
+        i: 0,
+        close: close,
+        tight: false,
+        inner_ends_nl: false,
+    }
+}
+
+function html_items(items: root.ast.ListItem[], tight: bool, close: string) -> HtmlJob {
+    let blocks: root.ast.Block[] = [];
+    HtmlJob {
+        mode: "items",
+        blocks: blocks,
+        items: items,
+        i: 0,
+        close: close,
+        tight: tight,
+        inner_ends_nl: false,
+    }
+}
+
+function html_item_kids(blocks: root.ast.Block[], tight: bool) -> HtmlJob {
+    let items: root.ast.ListItem[] = [];
+    HtmlJob {
+        mode: "item",
+        blocks: blocks,
+        items: items,
+        i: 0,
+        close: "</li>\n",
+        tight: tight,
+        inner_ends_nl: false,
+    }
+}
+
+function block_html_starts_lt(b: root.ast.Block) -> bool {
+    if let h: root.ast.HtmlBlock = b {
+        h.literal.starts_with("<")
+    } else {
+        true
+    }
+}
+
+function block_html_ends_nl(b: root.ast.Block) -> bool {
+    if let h: root.ast.HtmlBlock = b {
+        h.literal.ends_with("\n")
+    } else {
+        true
+    }
+}
+
+function list_open_tag(list: root.ast.List) -> string {
+    if (list.kind == root.ast.ListKind.Ordered) {
+        let start_attr = if (list.start == 1) {
+            ""
+        } else {
+            ` start="${list.start}"`
+        };
+        `<ol${start_attr}>\n`
+    } else {
+        "<ul>\n"
+    }
+}
+
+function list_close_tag(list: root.ast.List) -> string {
+    if (list.kind == root.ast.ListKind.Ordered) {
+        "</ol>\n"
+    } else {
+        "</ul>\n"
+    }
+}
+
 function render_document(document: root.ast.Document) -> string {
-    document.children
-        .map((b) -> {
-            render_block(b)
-        })
-        .join("")
+    render_html_jobs(html_seq(document.children, ""))
 }
 
 function render_block(block: root.ast.Block) -> string {
-    match (block) {
-        let p: root.ast.Paragraph => render_paragraph(p),
-        let h: root.ast.Heading => render_heading(h),
-        let _tb: root.ast.ThematicBreak => "<hr />\n",
-        let c: root.ast.CodeBlock => render_code_block(c),
-        let h: root.ast.HtmlBlock => h.literal,
-        let q: root.ast.BlockQuote => render_block_quote(q),
-        let l: root.ast.List => render_list(l),
+    let blocks: root.ast.Block[] = [];
+    blocks.push(block);
+    render_html_jobs(html_seq(blocks, ""))
+}
+
+function push_block_work(out: string[], jobs: HtmlJob[], b: root.ast.Block) -> void {
+    match (b) {
+        let p: root.ast.Paragraph => {
+            out.push(`<p>${render_inlines(p.children)}</p>\n`)
+        },
+        let h: root.ast.Heading => {
+            out.push(`<h${h.level}>${render_inlines(h.children)}</h${h.level}>\n`)
+        },
+        let _tb: root.ast.ThematicBreak => {
+            out.push("<hr />\n")
+        },
+        let c: root.ast.CodeBlock => {
+            out.push(render_code_block(c))
+        },
+        let html: root.ast.HtmlBlock => {
+            out.push(html.literal)
+        },
+        let q: root.ast.BlockQuote => {
+            out.push("<blockquote>\n");
+            jobs.push(html_seq(q.children, "</blockquote>\n"));
+        },
+        let l: root.ast.List => {
+            out.push(list_open_tag(l));
+            jobs.push(html_items(l.children, l.tight, list_close_tag(l)));
+        },
     }
+}
+
+function render_html_jobs(start: HtmlJob) -> string {
+    let out: string[] = [];
+    let jobs: HtmlJob[] = [];
+    jobs.push(start);
+    while (jobs.length() > 0) {
+        let job = jobs[jobs.length() - 1];
+        if (job.mode == "seq") {
+            if (job.i >= job.blocks.length()) {
+                if (job.close.length() > 0) {
+                    out.push(job.close);
+                }
+                let _ = jobs.pop();
+            } else {
+                let b = job.blocks[job.i];
+                job.i += 1;
+                push_block_work(out, jobs, b);
+            }
+        } else if (job.mode == "items") {
+            if (job.i >= job.items.length()) {
+                out.push(job.close);
+                let _ = jobs.pop();
+            } else {
+                let item = job.items[job.i];
+                job.i += 1;
+                out.push("<li>");
+                jobs.push(html_item_kids(item.children, job.tight));
+            }
+        } else if (job.i >= job.blocks.length()) {
+            out.push(job.close);
+            let _ = jobs.pop();
+        } else {
+            let b = job.blocks[job.i];
+            let more = job.i + 1 < job.blocks.length();
+            job.i += 1;
+            if (job.tight && b is root.ast.Paragraph) {
+                if let p: root.ast.Paragraph = b {
+                    let text = render_inlines(p.children);
+                    let chunk = if (more) {
+                        `${text}\n`
+                    } else {
+                        text
+                    };
+                    out.push(chunk);
+                    job.inner_ends_nl = chunk.ends_with("\n");
+                }
+            } else {
+                if (!job.inner_ends_nl && block_html_starts_lt(b)) {
+                    out.push("\n");
+                }
+                job.inner_ends_nl = block_html_ends_nl(b);
+                push_block_work(out, jobs, b);
+            }
+        }
+    }
+    out.join("")
 }
 
 function render_paragraph(p: root.ast.Paragraph) -> string {
@@ -48,85 +215,63 @@ function render_code_block(c: root.ast.CodeBlock) -> string {
     `<pre><code${info}>${escape_html(c.literal)}</code></pre>\n`
 }
 
-function render_block_quote(q: root.ast.BlockQuote) -> string {
-    `<blockquote>\n${q.children.map((b) -> { render_block(b) }).join("")}</blockquote>\n`
-}
-
-function render_list(list: root.ast.List) -> string {
-    let inner = list.children
-        .map((item) -> {
-            render_list_item(item, list.tight)
-        })
-        .join("");
-    if (list.kind == root.ast.ListKind.Ordered) {
-        let start_attr = if (list.start == 1) {
-            ""
-        } else {
-            ` start="${list.start}"`
-        };
-        `<ol${start_attr}>\n${inner}</ol>\n`
-    } else {
-        `<ul>\n${inner}</ul>\n`
-    }
-}
-
-function render_list_item(item: root.ast.ListItem, tight: bool) -> string {
-    let parts: string[] = [];
-    let inner_ends_nl = false;
-    let i = 0;
-    while (i < item.children.length()) {
-        let b = item.children[i];
-        let tight_para = tight && b is root.ast.Paragraph;
-        let chunk = if (tight && b is root.ast.Paragraph) {
-            let text = render_inlines(b.children);
-            if (i + 1 < item.children.length()) {
-                `${text}\n`
-            } else {
-                text
-            }
-        } else {
-            render_block(b)
-        };
-        if (!tight_para && chunk.starts_with("<") && !inner_ends_nl) {
-            parts.push("\n");
-        }
-        parts.push(chunk);
-        inner_ends_nl = chunk.ends_with("\n");
-        i += 1;
-    }
-    `<li>${parts.join("")}</li>\n`
-}
-
 function render_inlines(inlines: root.ast.Inline[]) -> string {
-    inlines
-        .map((n) -> {
-            render_inline(n)
-        })
-        .join("")
-}
-
-function render_inline(node: root.ast.Inline) -> string {
-    match (node) {
-        let t: root.ast.Text => escape_html(t.literal),
-        let _sb: root.ast.SoftBreak => "\n",
-        let _hb: root.ast.HardBreak => "<br />\n",
-        let c: root.ast.CodeSpan => `<code>${escape_html(c.literal)}</code>`,
-        let e: root.ast.Emph => `<em>${render_inlines(e.children)}</em>`,
-        let s: root.ast.Strong => `<strong>${render_inlines(s.children)}</strong>`,
-        let l: root.ast.Link => render_link(l),
-        let i: root.ast.Image => render_image(i),
-        let h: root.ast.HtmlInline => h.literal,
-        let a: root.ast.Autolink => render_autolink(a),
+    let out: string[] = [];
+    let jobs: InlineJob[] = [];
+    jobs.push(InlineJob { nodes: inlines, i: 0, close: "" });
+    while (jobs.length() > 0) {
+        let job = jobs[jobs.length() - 1];
+        if (job.i >= job.nodes.length()) {
+            if (job.close.length() > 0) {
+                out.push(job.close);
+            }
+            let _ = jobs.pop();
+        } else {
+            let node = job.nodes[job.i];
+            job.i += 1;
+            match (node) {
+                let t: root.ast.Text => {
+                    out.push(escape_html(t.literal))
+                },
+                let _sb: root.ast.SoftBreak => {
+                    out.push("\n")
+                },
+                let _hb: root.ast.HardBreak => {
+                    out.push("<br />\n")
+                },
+                let c: root.ast.CodeSpan => {
+                    out.push(`<code>${escape_html(c.literal)}</code>`)
+                },
+                let e: root.ast.Emph => {
+                    out.push("<em>");
+                    jobs.push(InlineJob { nodes: e.children, i: 0, close: "</em>" });
+                },
+                let s: root.ast.Strong => {
+                    out.push("<strong>");
+                    jobs.push(InlineJob { nodes: s.children, i: 0, close: "</strong>" });
+                },
+                let l: root.ast.Link => {
+                    let title = if let t: string = l.title {
+                        ` title="${escape_html(t)}"`
+                    } else {
+                        ""
+                    };
+                    out.push(`<a href="${escape_href(l.destination)}"${title}>`);
+                    jobs.push(InlineJob { nodes: l.children, i: 0, close: "</a>" });
+                },
+                let im: root.ast.Image => {
+                    out.push(render_image(im))
+                },
+                let h: root.ast.HtmlInline => {
+                    out.push(h.literal)
+                },
+                let a: root.ast.Autolink => {
+                    out.push(render_autolink(a))
+                },
+            }
+        }
     }
-}
-
-function render_link(l: root.ast.Link) -> string {
-    let title = if let t: string = l.title {
-        ` title="${escape_html(t)}"`
-    } else {
-        ""
-    };
-    `<a href="${escape_href(l.destination)}"${title}>${render_inlines(l.children)}</a>`
+    out.join("")
 }
 
 function render_image(i: root.ast.Image) -> string {
@@ -135,7 +280,7 @@ function render_image(i: root.ast.Image) -> string {
     } else {
         ""
     };
-    `<img src="${escape_href(i.destination)}" alt="${escape_html(i.children.map((n) -> { root.inline.image_plain(n) }).join(""))}"${title} />`
+    `<img src="${escape_href(i.destination)}" alt="${escape_html(root.inline.image_plain_nodes(i.children))}"${title} />`
 }
 
 function render_autolink(a: root.ast.Autolink) -> string {
@@ -253,4 +398,36 @@ function escape_href(s: string) -> string {
         i += 1;
     }
     parts.join("")
+}
+
+test "deep nested lists render" {
+    let md = `${"- ".repeat(80)}a\n`;
+    let html = root.to_html(md);
+    assert.is_true(html.includes("<ul>"));
+    assert.is_true(html.includes("a"));
+    assert.is_true(html.includes("</ul>"))
+}
+
+test "deep nested quotes render" {
+    let md = `${"> ".repeat(80)}a\n`;
+    let html = root.to_html(md);
+    assert.is_true(html.includes("<blockquote>"));
+    assert.is_true(html.includes("a"))
+}
+
+test "deep nested emphasis renders" {
+    let n = 200;
+    let md = `${"*".repeat(n)}a${"*".repeat(n)}\n`;
+    let html = root.to_html(md);
+    assert.is_true(html.includes("<strong>"));
+    assert.is_true(html.includes("a"));
+    assert.is_true(html.includes("</strong>"))
+}
+
+test "deep nested images render" {
+    let n = 80;
+    let md = `${"![".repeat(n)}a${"](u)".repeat(n)}\n`;
+    let html = root.to_html(md);
+    assert.is_true(html.includes("<img"));
+    assert.is_true(html.includes("alt=\"a\""))
 }

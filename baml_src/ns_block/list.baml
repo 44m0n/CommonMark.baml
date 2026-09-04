@@ -355,22 +355,27 @@ function block_last_line_blank(b: root.ast.Block) -> bool {
 }
 
 function ends_with_blank_line(b: root.ast.Block) -> bool {
-    if let l: root.ast.List = b {
-        let last = l.children.at(l.children.length() - 1);
-        if (last != null) {
-            return ends_with_blank_line_item(last);
+    let cur: root.ast.Block? = b;
+    while (true) {
+        if let node: root.ast.Block = cur {
+            if let l: root.ast.List = node {
+                let last = l.children.at(l.children.length() - 1);
+                if let item: root.ast.ListItem = last {
+                    let last_b = item.children.at(item.children.length() - 1);
+                    if let child: root.ast.Block = last_b {
+                        cur = child;
+                    } else {
+                        return item.last_line_blank;
+                    }
+                } else {
+                    return l.last_line_blank;
+                }
+            } else {
+                return block_last_line_blank(node);
+            }
+        } else {
+            return false;
         }
-        return l.last_line_blank;
-    }
-    block_last_line_blank(b)
-}
-
-function ends_with_blank_line_item(item: root.ast.ListItem) -> bool {
-    let last = item.children.at(item.children.length() - 1);
-    if (last != null) {
-        ends_with_blank_line(last)
-    } else {
-        item.last_line_blank
     }
 }
 

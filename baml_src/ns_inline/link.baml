@@ -216,41 +216,59 @@ class CloseBracketRule {
     }
 }
 
-function image_plain(node: root.ast.Inline) -> string {
-    match (node) {
-        let t: root.ast.Text => t.literal,
-        let _sb: root.ast.SoftBreak => "\n",
-        let _hb: root.ast.HardBreak => "\n",
-        let c: root.ast.CodeSpan => c.literal,
-        let e: root.ast.Emph => {
-            e.children
-                .map((n) -> {
-                    image_plain(n)
-                })
-                .join("")
-        },
-        let st: root.ast.Strong => {
-            st.children
-                .map((n) -> {
-                    image_plain(n)
-                })
-                .join("")
-        },
-        let l: root.ast.Link => {
-            l.children
-                .map((n) -> {
-                    image_plain(n)
-                })
-                .join("")
-        },
-        let im: root.ast.Image => {
-            im.children
-                .map((n) -> {
-                    image_plain(n)
-                })
-                .join("")
-        },
-        let _h: root.ast.HtmlInline => "",
-        let a: root.ast.Autolink => a.destination,
+class PlainJob {
+    nodes: root.ast.Inline[],
+    i: int,
+}
+
+function image_plain_nodes(nodes: root.ast.Inline[]) -> string {
+    let out: string[] = [];
+    let jobs: PlainJob[] = [];
+    jobs.push(PlainJob { nodes: nodes, i: 0 });
+    while (jobs.length() > 0) {
+        let job = jobs[jobs.length() - 1];
+        if (job.i >= job.nodes.length()) {
+            let _ = jobs.pop();
+        } else {
+            let node = job.nodes[job.i];
+            job.i += 1;
+            match (node) {
+                let t: root.ast.Text => {
+                    out.push(t.literal)
+                },
+                let _sb: root.ast.SoftBreak => {
+                    out.push("\n")
+                },
+                let _hb: root.ast.HardBreak => {
+                    out.push("\n")
+                },
+                let c: root.ast.CodeSpan => {
+                    out.push(c.literal)
+                },
+                let e: root.ast.Emph => {
+                    jobs.push(PlainJob { nodes: e.children, i: 0 })
+                },
+                let st: root.ast.Strong => {
+                    jobs.push(PlainJob { nodes: st.children, i: 0 })
+                },
+                let l: root.ast.Link => {
+                    jobs.push(PlainJob { nodes: l.children, i: 0 })
+                },
+                let im: root.ast.Image => {
+                    jobs.push(PlainJob { nodes: im.children, i: 0 })
+                },
+                let _h: root.ast.HtmlInline => {},
+                let a: root.ast.Autolink => {
+                    out.push(a.destination)
+                },
+            }
+        }
     }
+    out.join("")
+}
+
+function image_plain(node: root.ast.Inline) -> string {
+    let nodes: root.ast.Inline[] = [];
+    nodes.push(node);
+    image_plain_nodes(nodes)
 }

@@ -267,41 +267,39 @@ function parse_document(markdown: string, options: ParseOptions) -> root.ast.Doc
 
 function parse_inlines_tree(document: root.ast.Document, entities: map<string, string>) -> void {
     let rules = root.inline.commonmark_inline_rules();
-    parse_inlines_blocks(document.children, document.refs, entities = entities, rules = rules)
-}
-
-function parse_inlines_blocks(
-    blocks: root.ast.Block[],
-    refs: map<string, root.ast.LinkRef>,
-    entities: map<string, string>,
-    rules: root.inline.InlineParseRule[],
-) -> void {
-    for (let b in blocks) {
-        parse_inlines_block(b, refs, entities = entities, rules = rules);
+    let work: root.ast.Block[] = [];
+    for (let b in document.children) {
+        work.push(b);
     }
-}
-
-function parse_inlines_block(
-    b: root.ast.Block,
-    refs: map<string, root.ast.LinkRef>,
-    entities: map<string, string>,
-    rules: root.inline.InlineParseRule[],
-) -> void {
-    match (b) {
-        let p: root.ast.Paragraph => {
-            p.children = root.inline.parse_inlines(p.raw, refs, entities = entities, rules = rules);
-        },
-        let h: root.ast.Heading => {
-            h.children = root.inline.parse_inlines(h.raw, refs, entities = entities, rules = rules);
-        },
-        let q: root.ast.BlockQuote => {
-            parse_inlines_blocks(q.children, refs, entities = entities, rules = rules)
-        },
-        let l: root.ast.List => {
-            for (let item in l.children) {
-                parse_inlines_blocks(item.children, refs, entities = entities, rules = rules);
+    while (work.length() > 0) {
+        if let b: root.ast.Block = work.pop() {
+            if let p: root.ast.Paragraph = b {
+                p.children
+                    = root.inline.parse_inlines(
+                        p.raw,
+                        document.refs,
+                        entities = entities,
+                        rules = rules,
+                    );
+            } else if let h: root.ast.Heading = b {
+                h.children
+                    = root.inline.parse_inlines(
+                        h.raw,
+                        document.refs,
+                        entities = entities,
+                        rules = rules,
+                    );
+            } else if let q: root.ast.BlockQuote = b {
+                for (let c in q.children) {
+                    work.push(c);
+                }
+            } else if let l: root.ast.List = b {
+                for (let item in l.children) {
+                    for (let c in item.children) {
+                        work.push(c);
+                    }
+                }
             }
-        },
-        _ => {},
+        }
     }
 }
