@@ -117,8 +117,8 @@ test "backtick and tilde fences" {
     assert.equal(root.to_html("~~~\n<\n >\n~~~\n"), "<pre><code>&lt;\n &gt;\n</code></pre>\n")
 }
 
-test "two backticks are not a fence" {
-    assert.equal(root.to_html("``\nfoo\n``\n"), "<p>``\nfoo\n``</p>\n")
+test "two backticks are a code span not a fence" {
+    assert.equal(root.to_html("``\nfoo\n``\n"), "<p><code>foo</code></p>\n")
 }
 
 test "fenced code can interrupt a paragraph" {
@@ -142,6 +142,7 @@ test "closing fence must be at least as long and unindented past three" {
 test "fenced code spec examples that do not need later constructs" {
     root.spec.assert_spec_examples(
         [
+            121,
             119,
             120,
             122,
@@ -160,12 +161,14 @@ test "fenced code spec examples that do not need later constructs" {
             135,
             136,
             137,
+            138,
             139,
             140,
             141,
             142,
             143,
             144,
+            145,
             146,
             147,
         ],
