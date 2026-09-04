@@ -3,11 +3,19 @@ class Subject {
     inlines: root.ast.Inline[],
     refs: map<string, root.ast.LinkRef>,
     delimiters: Delimiter[],
+    brackets: Bracket[],
     entities: map<string, string>,
 }
 
 function subject(raw: string) -> Subject {
-    Subject { scan: root.scan.line_scan(raw), inlines: [], refs: {}, delimiters: [], entities: {} }
+    Subject {
+        scan: root.scan.line_scan(raw),
+        inlines: [],
+        refs: {},
+        delimiters: [],
+        brackets: [],
+        entities: {},
+    }
 }
 
 function pos(s: Subject) -> int {
@@ -48,6 +56,15 @@ function push_node(s: Subject, node: root.ast.Inline) -> void {
     s.inlines.push(node)
 }
 
+function is_delim_or_bracket_node(s: Subject, idx: int) -> bool {
+    s.delimiters.some((d) -> {
+        d.inline_index == idx
+    })
+        || s.brackets.some((b) -> {
+            b.inline_index == idx
+        })
+}
+
 function push_text(s: Subject, t: string) -> void {
     if (t.length() == 0) {
         return;
@@ -55,7 +72,7 @@ function push_text(s: Subject, t: string) -> void {
     let last_i = s.inlines.length() - 1;
     if (last_i >= 0) {
         let last = s.inlines[last_i];
-        if (last is root.ast.Text) {
+        if (last is root.ast.Text && !is_delim_or_bracket_node(s, last_i)) {
             last.literal = `${last.literal}${t}`;
             return;
         }

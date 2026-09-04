@@ -139,38 +139,6 @@ test "closing fence must be at least as long and unindented past three" {
     assert.equal(root.to_html("```\naaa\n    ```\n"), "<pre><code>aaa\n    ```\n</code></pre>\n")
 }
 
-test "fenced code spec examples that do not need later constructs" {
-    root.spec.assert_spec_examples(
-        [
-            121,
-            119,
-            120,
-            122,
-            123,
-            124,
-            125,
-            126,
-            127,
-            128,
-            129,
-            130,
-            131,
-            132,
-            133,
-            134,
-            135,
-            136,
-            137,
-            138,
-            139,
-            140,
-            141,
-            142,
-            143,
-            144,
-            145,
-            146,
-            147,
-        ],
-    )
+test "fenced code spec" {
+    assert.equal(root.spec.spec_failures("Fenced code blocks"), 0)
 }

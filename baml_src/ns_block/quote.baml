@@ -50,34 +50,6 @@ test "blank line splits two block quotes" {
     )
 }
 
-test "block quote spec examples that do not need lists" {
-    root.spec.assert_spec_examples(
-        [
-            228,
-            229,
-            230,
-            231,
-            232,
-            233,
-            234,
-            235,
-            236,
-            237,
-            238,
-            239,
-            240,
-            241,
-            242,
-            243,
-            244,
-            245,
-            246,
-            247,
-            248,
-            249,
-            250,
-            251,
-            252,
-        ],
-    )
+test "block quote spec" {
+    assert.equal(root.spec.spec_failures("Block quotes"), 0)
 }

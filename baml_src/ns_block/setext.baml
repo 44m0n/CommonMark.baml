@@ -92,33 +92,6 @@ test "multiline paragraph becomes one setext heading" {
     assert.equal(root.to_html("Foo\nBar\n---\n"), "<h2>Foo\nBar</h2>\n")
 }
 
-test "setext heading spec examples that do not need later constructs" {
-    root.spec.assert_spec_examples(
-        [
-            83,
-            84,
-            85,
-            86,
-            87,
-            88,
-            89,
-            90,
-            91,
-            92,
-            93,
-            94,
-            95,
-            96,
-            97,
-            98,
-            99,
-            100,
-            101,
-            102,
-            103,
-            104,
-            105,
-            106,
-        ],
-    )
+test "setext heading spec" {
+    assert.equal(root.spec.spec_failures("Setext headings"), 0)
 }

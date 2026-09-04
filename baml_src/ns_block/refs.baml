@@ -166,7 +166,7 @@ function normalize_reference(raw_label: string) -> string {
     while (out.ends_with(" ")) {
         out = out.slice(0, out.length() - 1);
     }
-    out.to_lower_case()
+    out.to_lower_case().replace_all("ß", "ss")
 }
 
 function parse_one_reference(s: string, refs: map<string, root.ast.LinkRef>) -> int {
@@ -280,6 +280,6 @@ test "link definitions cannot interrupt a paragraph" {
     )
 }
 
-test "link reference spec examples that do not need inlines" {
-    root.spec.assert_spec_examples([197, 199, 207, 208, 209, 210, 211, 212, 213])
+test "link reference spec" {
+    assert.equal(root.spec.spec_failures("Link reference definitions"), 0)
 }

@@ -1,13 +1,24 @@
 class Delimiter {
     kind: string,
     count: int,
+    orig_count: int,
     active: bool,
     can_open: bool,
     can_close: bool,
+    inline_index: int,
 }
 
 class DelimiterStack {
     items: Delimiter[],
+}
+
+class Bracket {
+    image: bool,
+    active: bool,
+    bracket_after: bool,
+    inline_index: int,
+    opener_pos: int,
+    delim_bottom: int,
 }
 
 function delimiter_stack() -> DelimiterStack {
@@ -28,8 +39,30 @@ function stack_top(stack: DelimiterStack) -> Delimiter? {
 
 test "push and pop maintain LIFO order" {
     let stack = delimiter_stack();
-    stack_push(stack, Delimiter { kind: "*", count: 1, active: true, can_open: true, can_close: false });
-    stack_push(stack, Delimiter { kind: "_", count: 2, active: true, can_open: false, can_close: true });
+    stack_push(
+        stack,
+        Delimiter {
+            kind: "*",
+            count: 1,
+            orig_count: 1,
+            active: true,
+            can_open: true,
+            can_close: false,
+            inline_index: 0,
+        },
+    );
+    stack_push(
+        stack,
+        Delimiter {
+            kind: "_",
+            count: 2,
+            orig_count: 2,
+            active: true,
+            can_open: false,
+            can_close: true,
+            inline_index: 1,
+        },
+    );
     let top = stack_top(stack);
     assert.equal(top?.kind, "_");
     assert.equal(top?.count, 2);
@@ -41,7 +74,15 @@ test "push and pop maintain LIFO order" {
 }
 
 test "delimiter records open and close flags" {
-    let d = Delimiter { kind: "[", count: 1, active: true, can_open: true, can_close: false };
+    let d = Delimiter {
+        kind: "[",
+        count: 1,
+        orig_count: 1,
+        active: true,
+        can_open: true,
+        can_close: false,
+        inline_index: 0,
+    };
     assert.is_true(d.can_open);
     assert.equal(d.can_close, false);
     assert.is_true(d.active)

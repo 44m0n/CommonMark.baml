@@ -220,7 +220,6 @@ class ParagraphOps {
             let raw = strip_final_newline(remaining);
             if let p: root.ast.Paragraph = open.ast {
                 p.raw = raw;
-                p.children = root.inline.parse_inlines(raw, parser.document.refs);
             }
         }
 
@@ -287,7 +286,6 @@ class HeadingOps {
             let raw = open.string_content.trim();
             if let h: root.ast.Heading = open.ast {
                 h.raw = raw;
-                h.children = root.inline.parse_inlines(raw, parser.document.refs);
             }
         }
 

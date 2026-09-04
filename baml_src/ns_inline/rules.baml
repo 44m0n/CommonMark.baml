@@ -11,5 +11,9 @@ function commonmark_inline_rules() -> InlineParseRule[] {
         EntityRule {  },
         AutolinkRule {  },
         HtmlInlineRule {  },
+        BangRule {  },
+        OpenBracketRule {  },
+        CloseBracketRule {  },
+        EmphasisRule {  },
     ]
 }

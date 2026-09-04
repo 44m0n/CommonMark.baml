@@ -408,7 +408,7 @@ class HtmlBlockStart {
 }
 
 test "html block type 6 until blank line" {
-    assert.equal(root.to_html("<div>\n*foo*\n\n*bar*\n"), "<div>\n*foo*\n<p>*bar*</p>\n")
+    assert.equal(root.to_html("<div>\n*foo*\n\n*bar*\n"), "<div>\n*foo*\n<p><em>bar</em></p>\n")
 }
 
 test "html comment block" {
@@ -425,45 +425,6 @@ test "html block type 7 does not interrupt a paragraph" {
     )
 }
 
-test "html block spec examples that do not need inlines" {
-    root.spec.assert_spec_examples(
-        [
-            149,
-            150,
-            151,
-            153,
-            154,
-            156,
-            157,
-            158,
-            159,
-            160,
-            161,
-            162,
-            163,
-            164,
-            165,
-            166,
-            169,
-            170,
-            171,
-            172,
-            173,
-            174,
-            175,
-            178,
-            179,
-            180,
-            181,
-            182,
-            183,
-            184,
-            185,
-            186,
-            187,
-            189,
-            190,
-            191,
-        ],
-    )
+test "html block spec" {
+    assert.equal(root.spec.spec_failures("HTML blocks"), 0)
 }

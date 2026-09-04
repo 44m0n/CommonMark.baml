@@ -16,6 +16,7 @@ function parse_inlines(raw: string, refs: map<string, root.ast.LinkRef>) -> root
         }
     }
     let _ = trim_trailing_spaces(s);
+    process_emphasis(s, 0);
     s.inlines
 }
 
@@ -26,9 +27,9 @@ test "parse_inlines returns empty for empty string" {
 
 test "parse_inlines coalesces ordinary text" {
     let refs: map<string, root.ast.LinkRef> = {};
-    let nodes = parse_inlines("hello *world*", refs);
+    let nodes = parse_inlines("hello world", refs);
     assert.equal(nodes.length(), 1);
-    assert.equal(nodes.at(0), root.ast.Text { literal: "hello *world*" })
+    assert.equal(nodes.at(0), root.ast.Text { literal: "hello world" })
 }
 
 test "backslash unescapes ascii punctuation" {
@@ -38,41 +39,15 @@ test "backslash unescapes ascii punctuation" {
 }
 
 test "commonmark_inline_rules includes leaf inline rules" {
-    assert.equal(commonmark_inline_rules().length(), 6)
+    assert.equal(commonmark_inline_rules().length(), 10)
 }
 
-test "backslash spec examples that do not need later constructs" {
-    root.spec.assert_spec_examples([12, 13, 14, 16, 17, 18, 19, 20, 21, 24])
+test "backslash spec" {
+    assert.equal(root.spec.spec_failures("Backslash escapes"), 0)
 }
 
-test "code span spec examples that do not need later constructs" {
-    root.spec.assert_spec_examples(
-        [
-            327,
-            328,
-            329,
-            330,
-            331,
-            332,
-            333,
-            334,
-            335,
-            336,
-            337,
-            338,
-            339,
-            340,
-            341,
-            342,
-            343,
-            344,
-            345,
-            346,
-            347,
-            348,
-            349,
-        ],
-    )
+test "code spans spec" {
+    assert.equal(root.spec.spec_failures("Code spans"), 0)
 }
 
 test "autolink spec" {
@@ -83,10 +58,8 @@ test "raw html spec" {
     assert.equal(root.spec.spec_failures("Raw HTML"), 0)
 }
 
-test "hard line breaks spec examples that do not need emphasis" {
-    root.spec.assert_spec_examples(
-        [633, 634, 635, 636, 637, 640, 641, 642, 643, 644, 645, 646, 647],
-    )
+test "hard line breaks spec" {
+    assert.equal(root.spec.spec_failures("Hard line breaks"), 0)
 }
 
 test "soft line breaks spec" {
@@ -101,6 +74,26 @@ test "precedence spec" {
     assert.equal(root.spec.spec_failures("Precedence"), 0)
 }
 
-test "entity spec examples that do not need links or emphasis" {
-    root.spec.assert_spec_examples([25, 26, 27, 28, 29, 30, 31, 34, 35, 36, 38, 39, 40, 41])
+test "entity spec" {
+    assert.equal(root.spec.spec_failures("Entity and numeric character references"), 0)
+}
+
+test "emphasis spec" {
+    assert.equal(root.spec.spec_failures("Emphasis and strong emphasis"), 0)
+}
+
+test "links spec" {
+    assert.equal(root.spec.spec_failures("Links"), 0)
+}
+
+test "images spec" {
+    assert.equal(root.spec.spec_failures("Images"), 0)
+}
+
+test "inlines spec" {
+    assert.equal(root.spec.spec_failures("Inlines"), 0)
+}
+
+test "tabs spec" {
+    assert.equal(root.spec.spec_failures("Tabs"), 0)
 }

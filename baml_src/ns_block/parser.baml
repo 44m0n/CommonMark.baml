@@ -232,5 +232,37 @@ function parse_document(markdown: string, options: ParseOptions) -> root.ast.Doc
     while (p.stack.length() > 0) {
         p.finalize_tip();
     }
+    parse_inlines_tree(document);
     document
+}
+
+function parse_inlines_tree(document: root.ast.Document) -> void {
+    parse_inlines_blocks(document.children, document.refs)
+}
+
+function parse_inlines_blocks(
+    blocks: root.ast.Block[],
+    refs: map<string, root.ast.LinkRef>,
+) -> void {
+    for (let b in blocks) {
+        parse_inlines_block(b, refs);
+    }
+}
+
+function parse_inlines_block(b: root.ast.Block, refs: map<string, root.ast.LinkRef>) -> void {
+    match (b) {
+        let p: root.ast.Paragraph => {
+            p.children = root.inline.parse_inlines(p.raw, refs);
+        },
+        let h: root.ast.Heading => {
+            h.children = root.inline.parse_inlines(h.raw, refs);
+        },
+        let q: root.ast.BlockQuote => parse_inlines_blocks(q.children, refs),
+        let l: root.ast.List => {
+            for (let item in l.children) {
+                parse_inlines_blocks(item.children, refs);
+            }
+        },
+        _ => {},
+    }
 }

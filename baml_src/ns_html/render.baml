@@ -121,7 +121,7 @@ function render_image(i: root.ast.Image) -> string {
     } else {
         ""
     };
-    `<img src="${escape_href(i.destination)}" alt="${escape_html(render_inlines(i.children))}"${title} />`
+    `<img src="${escape_href(i.destination)}" alt="${escape_html(i.children.map((n) -> { root.inline.image_plain(n) }).join(""))}"${title} />`
 }
 
 function render_autolink(a: root.ast.Autolink) -> string {
@@ -195,12 +195,6 @@ function escape_href(s: string) -> string {
         let code = ch.code_point_at(0) ?? 0;
         if (ch == "&") {
             out = `${out}&amp;`;
-        } else if (ch == "\"") {
-            out = `${out}&quot;`;
-        } else if (ch == "<") {
-            out = `${out}&lt;`;
-        } else if (ch == ">") {
-            out = `${out}&gt;`;
         } else if (href_keep_ascii(code)) {
             out = `${out}${ch}`;
         } else {

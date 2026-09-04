@@ -31,6 +31,6 @@ test "indented code preserves trailing spaces" {
     assert.equal(root.to_html("    foo  \n"), "<pre><code>foo  \n</code></pre>\n")
 }
 
-test "indented code spec examples that do not need later constructs" {
-    root.spec.assert_spec_examples([107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118])
+test "indented code spec" {
+    assert.equal(root.spec.spec_failures("Indented code blocks"), 0)
 }
