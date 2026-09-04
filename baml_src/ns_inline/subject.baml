@@ -3,10 +3,11 @@ class Subject {
     inlines: root.ast.Inline[],
     refs: map<string, root.ast.LinkRef>,
     delimiters: Delimiter[],
+    entities: map<string, string>,
 }
 
 function subject(raw: string) -> Subject {
-    Subject { scan: root.scan.line_scan(raw), inlines: [], refs: {}, delimiters: [] }
+    Subject { scan: root.scan.line_scan(raw), inlines: [], refs: {}, delimiters: [], entities: {} }
 }
 
 function pos(s: Subject) -> int {

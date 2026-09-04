@@ -1,0 +1,181 @@
+class EntityScan {
+    end: int,
+    value: string,
+}
+
+function load_named_entities() -> map<string, string> {
+    baml.json.from_string<map<string, string>>(baml.fs.read("vendor/html5-entities.json")) catch_all (e) {
+        _ => {
+            let empty: map<string, string> = {};
+            empty
+        }
+    }
+}
+
+function hex_val(c: string) -> int? {
+    let code = c.code_point_at(0) ?? 0;
+    if (code >= 48 && code <= 57) {
+        code - 48
+    } else if (code >= 65 && code <= 70) {
+        code - 55
+    } else if (code >= 97 && code <= 102) {
+        code - 87
+    } else {
+        null
+    }
+}
+
+function replacement_char() -> string {
+    string.from_code_points([65533]) catch (e) {
+        baml.errors.InvalidArgument => "?"
+    }
+}
+
+function code_point_string(n: int) -> string {
+    if (n <= 0 || n > 1114111 || (n >= 55296 && n <= 57343)) {
+        replacement_char()
+    } else {
+        string.from_code_points([n]) catch (e) {
+            baml.errors.InvalidArgument => replacement_char()
+        }
+    }
+}
+
+function scan_named_entity(line: string, i: int, table: map<string, string>) -> EntityScan? {
+    if (line.at(i) != "&") {
+        return null;
+    }
+    let j = i + 1;
+    while (j < line.length()) {
+        let c = line.at(j) ?? "";
+        if (c.is_ascii_alphanumeric()) {
+            j += 1;
+        } else {
+            break;
+        }
+    }
+    if (j == i + 1 || line.at(j) != ";") {
+        return null;
+    }
+    let name = line.slice(i + 1, j);
+    let value = table.get(name);
+    if (value == null) {
+        null
+    } else {
+        EntityScan { end: j + 1, value: value }
+    }
+}
+
+function scan_decimal_entity(line: string, i: int) -> EntityScan? {
+    if (line.at(i) != "&" || line.at(i + 1) != "#") {
+        return null;
+    }
+    let j = i + 2;
+    let digits = 0;
+    let n = 0;
+    while (digits < 7) {
+        let c = line.at(j);
+        if (c == null) {
+            break;
+        }
+        if (!c.is_ascii_numeric()) {
+            break;
+        }
+        n = n * 10 + ((c.code_point_at(0) ?? 48) - 48);
+        j += 1;
+        digits += 1;
+    }
+    if (digits < 1 || line.at(j) != ";") {
+        return null;
+    }
+    EntityScan { end: j + 1, value: code_point_string(n) }
+}
+
+function scan_hex_entity(line: string, i: int) -> EntityScan? {
+    if (line.at(i) != "&" || line.at(i + 1) != "#") {
+        return null;
+    }
+    let x = line.at(i + 2);
+    if (x != "x" && x != "X") {
+        return null;
+    }
+    let j = i + 3;
+    let digits = 0;
+    let n = 0;
+    while (digits < 6) {
+        let c = line.at(j);
+        if (c == null) {
+            break;
+        }
+        let d = hex_val(c);
+        if (d == null) {
+            break;
+        }
+        n = n * 16 + d;
+        j += 1;
+        digits += 1;
+    }
+    if (digits < 1 || line.at(j) != ";") {
+        return null;
+    }
+    EntityScan { end: j + 1, value: code_point_string(n) }
+}
+
+function scan_entity(line: string, i: int, table: map<string, string>) -> EntityScan? {
+    let named = scan_named_entity(line, i, table);
+    if (named != null) {
+        return named;
+    }
+    let hex = scan_hex_entity(line, i);
+    if (hex != null) {
+        return hex;
+    }
+    scan_decimal_entity(line, i)
+}
+
+function unescape_markdown(s: string) -> string {
+    let table = load_named_entities();
+    let out = "";
+    let i = 0;
+    while (i < s.length()) {
+        let c = s.at(i) ?? "";
+        if (c == "\\" && root.block.is_escapable(s.at(i + 1))) {
+            out = `${out}${s.at(i + 1) ?? ""}`;
+            i += 2;
+        } else if (c == "&") {
+            let ent = scan_entity(s, i, table);
+            if let e: EntityScan = ent {
+                out = `${out}${e.value}`;
+                i = e.end;
+            } else {
+                out = `${out}${c}`;
+                i += 1;
+            }
+        } else {
+            out = `${out}${c}`;
+            i += 1;
+        }
+    }
+    out
+}
+
+class EntityRule {
+    implements InlineParseRule {
+        function name(self) -> string throws never {
+            "entity"
+        }
+
+        function parse(self, s: Subject) -> bool throws never {
+            if (peek(s) != "&") {
+                return false;
+            }
+            let ent = scan_entity(s.scan.line, s.scan.pos, s.entities);
+            if let e: EntityScan = ent {
+                advance_to(s, e.end);
+                push_text(s, e.value);
+                return true;
+            }
+            false
+        }
+    }
+}

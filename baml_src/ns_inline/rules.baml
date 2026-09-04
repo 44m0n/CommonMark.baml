@@ -8,6 +8,7 @@ function commonmark_inline_rules() -> InlineParseRule[] {
         BackslashRule {  },
         NewlineRule {  },
         CodeSpanRule {  },
+        EntityRule {  },
         AutolinkRule {  },
         HtmlInlineRule {  },
     ]

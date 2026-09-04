@@ -7,19 +7,7 @@ function is_escapable(c: string?) -> bool {
 }
 
 function unescape_string(s: string) -> string {
-    let out = "";
-    let i = 0;
-    while (i < s.length()) {
-        let c = s.at(i) ?? "";
-        if (c == "\\" && is_escapable(s.at(i + 1))) {
-            out = `${out}${s.at(i + 1) ?? ""}`;
-            i += 2;
-        } else {
-            out = `${out}${c}`;
-            i += 1;
-        }
-    }
-    out
+    root.inline.unescape_markdown(s)
 }
 
 function skip_spaces_tabs(s: string, i: int) -> int {

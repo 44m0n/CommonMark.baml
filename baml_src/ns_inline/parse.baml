@@ -1,6 +1,7 @@
 function parse_inlines(raw: string, refs: map<string, root.ast.LinkRef>) -> root.ast.Inline[] {
     let s = subject(raw);
     s.refs = refs;
+    s.entities = load_named_entities();
     let rules = commonmark_inline_rules();
     while (!is_eof(s)) {
         let matched = false;
@@ -37,7 +38,7 @@ test "backslash unescapes ascii punctuation" {
 }
 
 test "commonmark_inline_rules includes leaf inline rules" {
-    assert.equal(commonmark_inline_rules().length(), 5)
+    assert.equal(commonmark_inline_rules().length(), 6)
 }
 
 test "backslash spec examples that do not need later constructs" {
@@ -98,4 +99,8 @@ test "textual content spec" {
 
 test "precedence spec" {
     assert.equal(root.spec.spec_failures("Precedence"), 0)
+}
+
+test "entity spec examples that do not need links or emphasis" {
+    root.spec.assert_spec_examples([25, 26, 27, 28, 29, 30, 31, 34, 35, 36, 38, 39, 40, 41])
 }
