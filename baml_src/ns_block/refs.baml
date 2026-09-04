@@ -266,23 +266,13 @@ function consume_link_reference_definitions(
     rest
 }
 
-function unlink_block(parser: Parser, ast: (root.ast.Block | root.ast.ListItem)?) -> void {
+function unlink_block(parser: Parser) -> void {
     if (parser.stack.length() == 0) {
         return;
     }
     let parent = parser.tip();
-    if let item: root.ast.ListItem = parent.ast {
-        if let b: root.ast.Block = ast {
-            let last = item.children.length() - 1;
-            if (last >= 0 && item.children[last] == b) {
-                let _ = item.children.pop();
-            }
-        }
-    } else if let b: root.ast.Block = ast {
-        let last = parent.children.length() - 1;
-        if (last >= 0 && parent.children[last] == b) {
-            let _ = parent.children.pop();
-        }
+    if (parent.children.length() > 0) {
+        let _ = parent.children.pop();
     }
 }
 

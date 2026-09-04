@@ -256,7 +256,7 @@ class ParagraphOps {
         function finalize(self, parser: Parser, open: Open) -> void throws never {
             let remaining = consume_link_reference_definitions(content_text(open), parser.document.refs, table = parser.entities);
             if (is_blank_text(strip_final_newline(remaining))) {
-                unlink_block(parser, open.ast);
+                unlink_block(parser);
                 return;
             }
             let raw = strip_final_newline(remaining);
