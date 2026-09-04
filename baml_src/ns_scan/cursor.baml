@@ -79,6 +79,22 @@ function is_ascii_punctuation(ch: string) -> bool {
         || (code >= 0x7B && code <= 0x7E)
 }
 
+function is_unicode_mark(code: int) -> bool {
+    (code >= 0x0300 && code <= 0x036F)
+        || (code >= 0x1AB0 && code <= 0x1AFF)
+        || (code >= 0x1DC0 && code <= 0x1DFF)
+        || (code >= 0x20D0 && code <= 0x20FF)
+        || (code >= 0xFE20 && code <= 0xFE2F)
+}
+
+function is_unicode_format(code: int) -> bool {
+    code == 0x00AD
+        || (code >= 0x200B && code <= 0x200F)
+        || (code >= 0x202A && code <= 0x202E)
+        || (code >= 0x2060 && code <= 0x206F)
+        || code == 0xFEFF
+}
+
 function is_unicode_whitespace(ch: string) -> bool {
     ch == "\t" || ch == "\n" || ch == "\u{000C}" || ch == "\r" || ch.is_whitespace()
 }

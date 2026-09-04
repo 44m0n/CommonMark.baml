@@ -1,10 +1,13 @@
 function is_unicode_punct(ch: string) -> bool {
     if (root.scan.is_ascii_punctuation(ch)) {
         true
-    } else if (ch.is_whitespace() || ch.is_alphanumeric() || ch.is_control()) {
+    } else if (ch.is_whitespace() || ch.is_alphanumeric() || ch.is_control() || ch.is_alphabetic()) {
+        false
+    } else if (!ch.is_graphic()) {
         false
     } else {
-        true
+        let code = ch.code_point_at(0) ?? 0;
+        !root.scan.is_unicode_mark(code) && !root.scan.is_unicode_format(code)
     }
 }
 
@@ -231,4 +234,11 @@ class EmphasisRule {
             true
         }
     }
+}
+
+test "zero-width space is not unicode punctuation for emphasis" {
+    let zwsp = string.from_code_points([0x200B]) catch (e) {
+        baml.errors.InvalidArgument => ""
+    };
+    assert.equal(root.to_html(`a*${zwsp}b*\n`), `<p>a<em>${zwsp}b</em></p>\n`)
 }
