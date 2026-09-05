@@ -177,7 +177,7 @@ function unescape_markdown(s: string, table: map<string, string>) -> string {
     let i = 0;
     while (i < chars.length()) {
         let c = chars.at(i) ?? "";
-        if (c == "\\" && root.block.is_escapable(chars.at(i + 1))) {
+        if (c == "\\" && root.scan.is_escapable(chars.at(i + 1))) {
             parts.push(chars.at(i + 1) ?? "");
             i += 2;
         } else if (c == "&") {

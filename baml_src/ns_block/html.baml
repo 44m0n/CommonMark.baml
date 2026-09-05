@@ -68,45 +68,12 @@ function open_html_block(html_type: int) -> Open {
     o
 }
 
-function is_ascii_letter_char(c: string?) -> bool {
-    if (c == null) {
-        false
-    } else {
-        let code = c.code_point_at(0) ?? 0;
-        (code >= 65 && code <= 90) || (code >= 97 && code <= 122)
-    }
-}
-
-function is_tag_name_char(c: string?) -> bool {
-    if (c == null) {
-        false
-    } else {
-        c.is_ascii_alphanumeric() || c == "-"
-    }
-}
-
-function is_attr_name_start(c: string?) -> bool {
-    if (c == null) {
-        false
-    } else {
-        is_ascii_letter_char(c) || c == "_" || c == ":"
-    }
-}
-
-function is_attr_name_char(c: string?) -> bool {
-    if (c == null) {
-        false
-    } else {
-        is_attr_name_start(c) || c.is_ascii_numeric() || c == "." || c == "-"
-    }
-}
-
 function read_html_tag_name(s: string, start: int) -> string? {
-    if (!is_ascii_letter_char(s.at(start))) {
+    if (!root.scan.is_ascii_letter_char(s.at(start))) {
         return null;
     }
     let i = start + 1;
-    while (is_tag_name_char(s.at(i))) {
+    while (root.scan.is_tag_name_char(s.at(i))) {
         i += 1;
     }
     s.slice(start, i)
@@ -235,11 +202,11 @@ function parse_attribute(s: string, i: int) -> int? {
     if (j == i) {
         return null;
     }
-    if (!is_attr_name_start(s.at(j))) {
+    if (!root.scan.is_attr_name_start(s.at(j))) {
         return null;
     }
     j += 1;
-    while (is_attr_name_char(s.at(j))) {
+    while (root.scan.is_attr_name_char(s.at(j))) {
         j += 1;
     }
     let k = skip_space_tab(s, j);
@@ -363,7 +330,7 @@ function html_block_type(s: string, allow_type7: bool) -> int? {
     if (s.starts_with("<?")) {
         return 3;
     }
-    if (s.starts_with("<!") && is_ascii_letter_char(s.at(2))) {
+    if (s.starts_with("<!") && root.scan.is_ascii_letter_char(s.at(2))) {
         return 4;
     }
     if (s.starts_with("<![CDATA[")) {

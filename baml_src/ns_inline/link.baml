@@ -27,7 +27,7 @@ function try_inline_link(s: Subject) -> root.ast.LinkRef? {
     if (peek(s) == ")") {
         dest = "";
     } else {
-        let d = root.block.parse_link_destination(s.scan.line, s.scan.pos, table = s.entities);
+        let d = parse_link_destination(s.scan.line, s.scan.pos, table = s.entities);
         if (d == null) {
             advance_to(s, save);
             return null;
@@ -39,8 +39,8 @@ function try_inline_link(s: Subject) -> root.ast.LinkRef? {
     let title: string? = null;
     if (whitespace_before(s) || peek(s) == ")") {
         if (peek(s) != ")") {
-            let t = root.block.parse_link_title(s.scan.line, s.scan.pos, table = s.entities);
-            if let tv: root.block.ScanPiece = t {
+            let t = parse_link_title(s.scan.line, s.scan.pos, table = s.entities);
+            if let tv: ScanPiece = t {
                 title = tv.value;
                 advance_to(s, tv.end);
                 skip_spnl_sub(s);
@@ -57,7 +57,7 @@ function try_inline_link(s: Subject) -> root.ast.LinkRef? {
 
 function try_reference_link(s: Subject, opener: Bracket, closer_pos: int) -> root.ast.LinkRef? {
     let save = s.scan.pos;
-    let label_end = root.block.parse_link_label(s.scan.line, s.scan.pos);
+    let label_end = parse_link_label(s.scan.line, s.scan.pos);
     let n = 0;
     if (label_end != null) {
         n = label_end - save;
@@ -78,7 +78,7 @@ function try_reference_link(s: Subject, opener: Bracket, closer_pos: int) -> roo
     if (reflabel.length() == 0) {
         return null;
     }
-    let norm = root.block.normalize_reference(reflabel);
+    let norm = normalize_reference(reflabel);
     s.refs.get(norm)
 }
 

@@ -64,6 +64,14 @@ function is_space_or_tab(ch: string) -> bool {
     ch == " " || ch == "\t"
 }
 
+function skip_space_tab_index(s: string, i: int) -> int {
+    let chars = s.chars();
+    while (is_space_or_tab(chars.at(i) ?? "")) {
+        i += 1;
+    }
+    i
+}
+
 function trim_space_tab(s: string) -> string {
     let chars = s.chars();
     let start = 0;
@@ -85,12 +93,117 @@ function is_ascii_punctuation(ch: string) -> bool {
         || (code >= 0x7B && code <= 0x7E)
 }
 
+function is_escapable(c: string?) -> bool {
+    if (c == null) {
+        false
+    } else {
+        is_ascii_punctuation(c)
+    }
+}
+
+function is_ascii_letter_char(c: string?) -> bool {
+    if (c == null) {
+        false
+    } else {
+        let code = c.code_point_at(0) ?? 0;
+        (code >= 65 && code <= 90) || (code >= 97 && code <= 122)
+    }
+}
+
+function is_tag_name_char(c: string?) -> bool {
+    if (c == null) {
+        false
+    } else {
+        c.is_ascii_alphanumeric() || c == "-"
+    }
+}
+
+function is_attr_name_start(c: string?) -> bool {
+    if (c == null) {
+        false
+    } else {
+        is_ascii_letter_char(c) || c == "_" || c == ":"
+    }
+}
+
+function is_attr_name_char(c: string?) -> bool {
+    if (c == null) {
+        false
+    } else {
+        is_attr_name_start(c) || c.is_ascii_numeric() || c == "." || c == "-"
+    }
+}
+
+function is_hebrew_arabic_mark(code: int) -> bool {
+    (code >= 0x0591 && code <= 0x05BD)
+        || code == 0x05BF
+        || (code >= 0x05C1 && code <= 0x05C2)
+        || (code >= 0x05C4 && code <= 0x05C5)
+        || code == 0x05C7
+        || (code >= 0x0610 && code <= 0x061A)
+        || (code >= 0x064B && code <= 0x065F)
+        || code == 0x0670
+        || (code >= 0x06D6 && code <= 0x06DC)
+        || (code >= 0x06DF && code <= 0x06E8)
+        || (code >= 0x06EA && code <= 0x06ED)
+        || (code >= 0x0897 && code <= 0x08FF)
+        || code == 0xFB1E
+}
+
+function is_indic_mark(code: int) -> bool {
+    (code >= 0x0900 && code <= 0x0963)
+        || (code >= 0x0981 && code <= 0x09E3)
+        || code == 0x09FE
+        || (code >= 0x0A01 && code <= 0x0A75)
+        || (code >= 0x0A81 && code <= 0x0AE3)
+        || (code >= 0x0AFA && code <= 0x0AFF)
+        || (code >= 0x0B01 && code <= 0x0B63)
+        || (code >= 0x0B82 && code <= 0x0BD7)
+        || (code >= 0x0C00 && code <= 0x0C63)
+        || (code >= 0x0C81 && code <= 0x0C83)
+        || (code >= 0x0CBC && code <= 0x0CF3)
+        || (code >= 0x0D00 && code <= 0x0D4D)
+        || (code >= 0x0D57 && code <= 0x0D63)
+        || (code >= 0x0D81 && code <= 0x0DF3)
+        || (code >= 0xA8E0 && code <= 0xA8F1)
+}
+
+function is_sea_mark(code: int) -> bool {
+    (code >= 0x0E31 && code <= 0x0E3A)
+        || (code >= 0x0E47 && code <= 0x0E4E)
+        || (code >= 0x0EB1 && code <= 0x0ECE)
+        || (code >= 0x0F18 && code <= 0x0F19)
+        || code == 0x0F35
+        || code == 0x0F37
+        || code == 0x0F39
+        || (code >= 0x0F3E && code <= 0x0F84)
+        || (code >= 0x0F86 && code <= 0x0FBC)
+        || code == 0x0FC6
+        || (code >= 0x102B && code <= 0x103E)
+        || (code >= 0x1056 && code <= 0x109D)
+        || code == 0xA9E5
+        || (code >= 0xAA7B && code <= 0xAA7D)
+        || (code >= 0x17B4 && code <= 0x17D3)
+        || code == 0x17DD
+}
+
+function is_extra_combining_mark(code: int) -> bool {
+    (code >= 0x0483 && code <= 0x0489)
+        || (code >= 0x1CD0 && code <= 0x1CD2)
+        || (code >= 0x1CD4 && code <= 0x1CF9)
+        || (code >= 0x2DE0 && code <= 0x2DFF)
+}
+
 function is_unicode_mark(code: int) -> bool {
     (code >= 0x0300 && code <= 0x036F)
         || (code >= 0x1AB0 && code <= 0x1AFF)
         || (code >= 0x1DC0 && code <= 0x1DFF)
         || (code >= 0x20D0 && code <= 0x20FF)
         || (code >= 0xFE20 && code <= 0xFE2F)
+        || is_hebrew_arabic_mark(code)
+        || is_indic_mark(code)
+        || is_sea_mark(code)
+        || is_extra_combining_mark(code)
 }
 
 function is_unicode_format(code: int) -> bool {

@@ -21,11 +21,11 @@ function skip_tag_ws(chars: string[], i: int) -> int {
 }
 
 function scan_tag_name(chars: string[], i: int) -> int? {
-    if (!root.block.is_ascii_letter_char(chars.at(i))) {
+    if (!root.scan.is_ascii_letter_char(chars.at(i))) {
         return null;
     }
     i += 1;
-    while (root.block.is_tag_name_char(chars.at(i))) {
+    while (root.scan.is_tag_name_char(chars.at(i))) {
         i += 1;
     }
     i
@@ -87,11 +87,11 @@ function scan_attribute(chars: string[], i: int) -> int? {
     if (j == i) {
         return null;
     }
-    if (!root.block.is_attr_name_start(chars.at(j))) {
+    if (!root.scan.is_attr_name_start(chars.at(j))) {
         return null;
     }
     j += 1;
-    while (root.block.is_attr_name_char(chars.at(j))) {
+    while (root.scan.is_attr_name_char(chars.at(j))) {
         j += 1;
     }
     let k = skip_tag_ws(chars, j);
@@ -184,7 +184,7 @@ function scan_declaration(chars: string[], start: int) -> int? {
     if (chars.at(start) != "<" || chars.at(start + 1) != "!") {
         return null;
     }
-    if (!root.block.is_ascii_letter_char(chars.at(start + 2))) {
+    if (!root.scan.is_ascii_letter_char(chars.at(start + 2))) {
         return null;
     }
     let i = start + 3;

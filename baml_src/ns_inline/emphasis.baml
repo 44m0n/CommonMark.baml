@@ -242,3 +242,17 @@ test "zero-width space is not unicode punctuation for emphasis" {
     };
     assert.equal(root.to_html(`a*${zwsp}b*\n`), `<p>a<em>${zwsp}b</em></p>\n`)
 }
+
+test "devanagari virama is not unicode punctuation" {
+    let virama = string.from_code_points([0x094D]) catch (e) {
+        baml.errors.InvalidArgument => ""
+    };
+    assert.equal(is_unicode_punct(virama), false)
+}
+
+test "arabic fatha is not unicode punctuation" {
+    let fatha = string.from_code_points([0x064E]) catch (e) {
+        baml.errors.InvalidArgument => ""
+    };
+    assert.equal(is_unicode_punct(fatha), false)
+}

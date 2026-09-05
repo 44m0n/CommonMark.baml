@@ -52,7 +52,11 @@ class AtxHeadingStart {
 }
 
 function is_space_tab(c: string?) -> bool {
-    c == " " || c == "\t"
+    if (c == null) {
+        false
+    } else {
+        root.scan.is_space_or_tab(c)
+    }
 }
 
 function strip_trailing_space_tab(s: string) -> string {
