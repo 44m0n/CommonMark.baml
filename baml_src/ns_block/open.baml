@@ -211,7 +211,7 @@ class BlockQuoteOps {
     implements BlockOps {
         function continue_line(self, parser: Parser, open: Open) -> ContinueResult throws never {
             let _ = open;
-            if (!parser.indented && parser.scan.line.at(parser.next_nonspace) == ">") {
+            if (!parser.indented && parser.scan.chars.at(parser.next_nonspace) == ">") {
                 consume_quote_marker(parser);
                 ContinueResult.Ok
             } else {

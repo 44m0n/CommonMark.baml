@@ -4,28 +4,36 @@ class AtxHeadingStart {
             "atx_heading"
         }
 
+        function triggers(self) -> string[] throws never {
+            ["#"]
+        }
+
+        function allow_indented(self) -> bool throws never {
+            false
+        }
+
         function try_open(self, parser: Parser) -> StartMatch throws never {
             if (parser.indented) {
                 return StartMatch.None;
             }
-            let line = parser.scan.line;
+            let chars = parser.scan.chars;
             let i = parser.next_nonspace;
             let hashes = 0;
-            while (hashes < 7 && line.at(i) == "#") {
+            while (hashes < 7 && chars.at(i) == "#") {
                 hashes += 1;
                 i += 1;
             }
             if (hashes < 1 || hashes > 6) {
                 return StartMatch.None;
             }
-            let next = line.at(i);
+            let next = chars.at(i);
             if (next != null && next != " " && next != "\t") {
                 return StartMatch.None;
             }
             parser.advance_next_nonspace();
             parser.advance_offset(hashes, false);
             while (true) {
-                let c = parser.scan.line.at(parser.scan.pos);
+                let c = parser.scan.chars.at(parser.scan.pos);
                 if (c == " " || c == "\t") {
                     parser.advance_offset(1, false);
                 } else {
@@ -37,7 +45,7 @@ class AtxHeadingStart {
             let open = open_heading(hashes);
             replace_content(open, strip_atx_closing(rest));
             parser.push_child(open);
-            parser.advance_offset(parser.scan.line.length() - parser.scan.pos, false);
+            parser.advance_offset(parser.scan.chars.length() - parser.scan.pos, false);
             StartMatch.Leaf
         }
     }
@@ -48,8 +56,9 @@ function is_space_tab(c: string?) -> bool {
 }
 
 function strip_trailing_space_tab(s: string) -> string {
-    let end = s.length();
-    while (end > 0 && is_space_tab(s.at(end - 1))) {
+    let chars = s.chars();
+    let end = chars.length();
+    while (end > 0 && is_space_tab(chars.at(end - 1))) {
         end -= 1;
     }
     s.slice(0, end)
@@ -57,28 +66,29 @@ function strip_trailing_space_tab(s: string) -> string {
 
 function strip_atx_closing(s: string) -> string {
     let trimmed = strip_trailing_space_tab(s);
+    let chars = trimmed.chars();
     let start = 0;
-    while (start < trimmed.length() && is_space_tab(trimmed.at(start))) {
+    while (start < chars.length() && is_space_tab(chars.at(start))) {
         start += 1;
     }
-    if (start < trimmed.length()) {
+    if (start < chars.length()) {
         let j = start;
-        while (j < trimmed.length() && trimmed.at(j) == "#") {
+        while (j < chars.length() && chars.at(j) == "#") {
             j += 1;
         }
-        if (j == trimmed.length() && j > start) {
+        if (j == chars.length() && j > start) {
             return "";
         }
     }
-    let end = trimmed.length();
-    while (end > 0 && trimmed.at(end - 1) == "#") {
+    let end = chars.length();
+    while (end > 0 && chars.at(end - 1) == "#") {
         end -= 1;
     }
-    if (end == trimmed.length() || end == 0) {
+    if (end == chars.length() || end == 0) {
         return s;
     }
     let space_end = end;
-    while (space_end > 0 && is_space_tab(trimmed.at(space_end - 1))) {
+    while (space_end > 0 && is_space_tab(chars.at(space_end - 1))) {
         space_end -= 1;
     }
     if (space_end == end) {

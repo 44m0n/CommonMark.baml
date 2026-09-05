@@ -9,8 +9,10 @@ class Document {
 }
 
 class Paragraph {
+    // Source consumed during inline parse; empty after parse().
     raw: string,
     children: Inline[],
+    // Parser tightness flag; false after parse(). Set false when building trees.
     last_line_blank: bool,
 }
 
@@ -34,7 +36,6 @@ class CodeBlock {
 }
 
 class HtmlBlock {
-    html_type: int,
     literal: string,
     last_line_blank: bool,
 }

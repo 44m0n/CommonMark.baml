@@ -12,6 +12,7 @@ class Parser {
     partially_consumed_tab: bool,
     all_closed: bool,
     last_matched_index: int,
+    blank_continue_index: int,
 
     function tip(self) -> Open {
         self.stack[self.stack.length() - 1]
@@ -24,9 +25,9 @@ class Parser {
     function find_next_nonspace(self) -> void {
         let i = self.scan.pos;
         let cols = self.scan.column;
-        let line = self.scan.line;
+        let chars = self.scan.chars;
         while (true) {
-            let c = line.at(i);
+            let c = chars.at(i);
             if (c == " ") {
                 i += 1;
                 cols += 1;
@@ -51,10 +52,10 @@ class Parser {
     }
 
     function advance_offset(self, count: int, columns: bool) -> void {
-        let line = self.scan.line;
+        let chars = self.scan.chars;
         let remaining = count;
         while (remaining > 0) {
-            let c = line.at(self.scan.pos);
+            let c = chars.at(self.scan.pos);
             if (c == null) {
                 break;
             }
@@ -103,6 +104,7 @@ class Parser {
         if (node != null) {
             copy_last_line_blank(node);
             node.ops.finalize(self, node);
+            refresh_blank_continue(self);
         }
     }
 
@@ -127,12 +129,18 @@ class Parser {
             let _ = self.tip().children.push(b);
         }
         let _ = self.stack.push(child);
+        refresh_blank_continue(self);
     }
 
     function incorporate_line(self, ln: string) -> void {
         self.scan = root.scan.line_scan(ln);
         self.blank = false;
         self.partially_consumed_tab = false;
+        self.find_next_nonspace();
+        if (self.blank) {
+            incorporate_blank_line(self);
+            return;
+        }
         //# Continue currently open blocks from the document down
         let all_matched = true;
         self.last_matched_index = 0;
@@ -161,7 +169,7 @@ class Parser {
         while (!matched_leaf) {
             self.find_next_nonspace();
             let found = false;
-            let ch = self.scan.line.at(self.next_nonspace);
+            let ch = self.scan.chars.at(self.next_nonspace);
             for (let start in self.options.block_starts) {
                 if (!block_start_could_match(start, self, ch)) {
                     continue;
@@ -206,20 +214,80 @@ class Parser {
     }
 }
 
+function continues_on_blank(open: Open) -> bool {
+    match (open.type_name) {
+        OpenKind.Document => true,
+        OpenKind.List => true,
+        OpenKind.Item => open.children.length() > 0,
+        OpenKind.CodeBlock => true,
+        OpenKind.HtmlBlock => open.html_type != 6 && open.html_type != 7,
+        _ => false,
+    }
+}
+
+function refresh_blank_continue(parser: Parser) -> void {
+    let i = 0;
+    let last = 0;
+    let n = parser.stack.length();
+    while (i < n) {
+        if (!continues_on_blank(parser.stack[i])) {
+            break;
+        }
+        last = i;
+        i += 1;
+    }
+    parser.blank_continue_index = last;
+}
+
+function incorporate_blank_line(parser: Parser) -> void {
+    let n = parser.stack.length();
+    let idx = parser.blank_continue_index;
+    if (idx >= n) {
+        idx = n - 1;
+    }
+    if (idx < 0) {
+        idx = 0;
+    }
+    parser.last_matched_index = idx;
+    parser.all_closed = idx == n - 1;
+    let j = 1;
+    while (j <= idx) {
+        if (parser.stack[j].type_name == OpenKind.Item) {
+            parser.advance_next_nonspace();
+            break;
+        }
+        j += 1;
+    }
+    let matched = parser.stack[idx];
+    if (matched.type_name == OpenKind.CodeBlock || matched.type_name == OpenKind.HtmlBlock) {
+        let r = matched.ops.continue_line(parser, matched);
+        if (r == ContinueResult.Done) {
+            return;
+        }
+    }
+    let container = parser.stack[idx];
+    record_last_line_blank(parser, container, idx);
+    parser.close_unmatched();
+    let t = parser.tip();
+    if (t.ops.accepts_lines()) {
+        parser.add_line();
+        maybe_close_html_block(parser);
+    }
+}
+
 function block_start_could_match(start: BlockStart, parser: Parser, ch: string?) -> bool {
     if (parser.indented) {
-        start.name() == "indented_code"
+        start.allow_indented()
+    } else if (start.allow_indented() && start.triggers().length() == 0) {
+        false
     } else {
-        match (start.name()) {
-            "block_quote" => ch == ">",
-            "atx_heading" => ch == "#",
-            "fenced_code" => ch == "`" || ch == "~",
-            "html_block" => ch == "<",
-            "setext_heading" => ch == "=" || ch == "-",
-            "thematic_break" => ch == "*" || ch == "-" || ch == "_",
-            "list_item" => ch == "*" || ch == "-" || ch == "+" || is_digit_char(ch),
-            "indented_code" => false,
-            _ => true,
+        let trig = start.triggers();
+        if (trig.length() == 0) {
+            true
+        } else if let c: string = ch {
+            trig.includes(c)
+        } else {
+            false
         }
     }
 }
@@ -244,6 +312,7 @@ function new_parser(
         partially_consumed_tab: false,
         all_closed: true,
         last_matched_index: 0,
+        blank_continue_index: 0,
     }
 }
 
@@ -254,6 +323,7 @@ function parse_document(markdown: string, options: ParseOptions) -> root.ast.Doc
     let document = root.ast.Document { children: [], refs: refs };
     let p = new_parser(options, document, entities = entities);
     let _ = p.stack.push(make_document_open(document));
+    refresh_blank_continue(p);
     //# Grow the document from each input line
     for (let line in input.lines()) {
         p.incorporate_line(line);
@@ -304,6 +374,38 @@ function parse_inlines_tree(
                     }
                 }
             }
+            clear_parser_fields(b);
         }
+    }
+}
+
+function clear_parser_fields(b: root.ast.Block) -> void {
+    match (b) {
+        let p: root.ast.Paragraph => {
+            p.raw = "";
+            p.last_line_blank = false;
+        },
+        let h: root.ast.Heading => {
+            h.raw = "";
+            h.last_line_blank = false;
+        },
+        let tb: root.ast.ThematicBreak => {
+            tb.last_line_blank = false;
+        },
+        let c: root.ast.CodeBlock => {
+            c.last_line_blank = false;
+        },
+        let html: root.ast.HtmlBlock => {
+            html.last_line_blank = false;
+        },
+        let q: root.ast.BlockQuote => {
+            q.last_line_blank = false;
+        },
+        let l: root.ast.List => {
+            l.last_line_blank = false;
+            for (let item in l.children) {
+                item.last_line_blank = false;
+            }
+        },
     }
 }

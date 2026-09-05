@@ -4,11 +4,19 @@ class FencedCodeStart {
             "fenced_code"
         }
 
+        function triggers(self) -> string[] throws never {
+            ["`", "~"]
+        }
+
+        function allow_indented(self) -> bool throws never {
+            false
+        }
+
         function try_open(self, parser: Parser) -> StartMatch throws never {
             if (parser.indented) {
                 return StartMatch.None;
             }
-            let fence = scan_opening_fence(parser.scan.line, parser.next_nonspace);
+            let fence = scan_opening_fence(parser.scan.chars, parser.next_nonspace);
             if (fence == null) {
                 return StartMatch.None;
             }
@@ -26,13 +34,13 @@ class FenceScan {
     fence_length: int,
 }
 
-function scan_opening_fence(line: string, start: int) -> FenceScan? {
-    let ch = line.at(start);
+function scan_opening_fence(chars: string[], start: int) -> FenceScan? {
+    let ch = chars.at(start);
     if (ch != "`" && ch != "~") {
         return null;
     }
     let i = start;
-    while (line.at(i) == ch) {
+    while (chars.at(i) == ch) {
         i += 1;
     }
     let length = i - start;
@@ -41,8 +49,8 @@ function scan_opening_fence(line: string, start: int) -> FenceScan? {
     }
     if (ch == "`") {
         let j = i;
-        while (j < line.length()) {
-            if (line.at(j) == "`") {
+        while (j < chars.length()) {
+            if (chars.at(j) == "`") {
                 return null;
             }
             j += 1;
@@ -55,21 +63,21 @@ function is_closing_fence(parser: Parser, open: Open) -> bool {
     if (parser.indent > 3) {
         return false;
     }
-    let line = parser.scan.line;
+    let chars = parser.scan.chars;
     let i = parser.next_nonspace;
-    if (line.at(i) != open.fence_char) {
+    if (chars.at(i) != open.fence_char) {
         return false;
     }
     let len = 0;
-    while (line.at(i) == open.fence_char) {
+    while (chars.at(i) == open.fence_char) {
         len += 1;
         i += 1;
     }
     if (len < open.fence_length) {
         return false;
     }
-    while (i < line.length()) {
-        let c = line.at(i);
+    while (i < chars.length()) {
+        let c = chars.at(i);
         if (c != " " && c != "\t") {
             return false;
         }
@@ -81,7 +89,7 @@ function is_closing_fence(parser: Parser, open: Open) -> bool {
 function skip_fence_indent(parser: Parser, fence_offset: int) -> void {
     let i = fence_offset;
     while (i > 0) {
-        let c = parser.scan.line.at(parser.scan.pos);
+        let c = parser.scan.chars.at(parser.scan.pos);
         if (c == " " || c == "\t") {
             parser.advance_offset(1, true);
             i -= 1;

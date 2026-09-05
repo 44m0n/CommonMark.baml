@@ -30,7 +30,6 @@ class HtmlBlockOps {
         function finalize(self, parser: Parser, open: Open) -> void throws never {
             let _ = parser;
             if let h: root.ast.HtmlBlock = open.ast {
-                h.html_type = open.html_type;
                 h.literal
                     = if (open.html_type >= 1 && open.html_type <= 5) {
                         strip_trailing_html_blanks(content_text(open))
@@ -63,7 +62,7 @@ function open_html_block(html_type: int) -> Open {
     let o = make_open(
         OpenKind.HtmlBlock,
         HtmlBlockOps {  },
-        root.ast.HtmlBlock { html_type: html_type, literal: "", last_line_blank: false },
+        root.ast.HtmlBlock { literal: "", last_line_blank: false },
     );
     o.html_type = html_type;
     o
@@ -438,11 +437,19 @@ class HtmlBlockStart {
             "html_block"
         }
 
+        function triggers(self) -> string[] throws never {
+            ["<"]
+        }
+
+        function allow_indented(self) -> bool throws never {
+            false
+        }
+
         function try_open(self, parser: Parser) -> StartMatch throws never {
             if (parser.indented) {
                 return StartMatch.None;
             }
-            if (parser.scan.line.at(parser.next_nonspace) != "<") {
+            if (parser.scan.chars.at(parser.next_nonspace) != "<") {
                 return StartMatch.None;
             }
             let allow_type7 = parser.last_matched().type_name != OpenKind.Paragraph

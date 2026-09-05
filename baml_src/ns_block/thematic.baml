@@ -4,30 +4,38 @@ class ThematicBreakStart {
             "thematic_break"
         }
 
+        function triggers(self) -> string[] throws never {
+            ["*", "-", "_"]
+        }
+
+        function allow_indented(self) -> bool throws never {
+            false
+        }
+
         function try_open(self, parser: Parser) -> StartMatch throws never {
             if (parser.indented) {
                 return StartMatch.None;
             }
-            if (!looks_like_thematic_break(parser.scan.line, parser.next_nonspace)) {
+            if (!looks_like_thematic_break(parser.scan.chars, parser.next_nonspace)) {
                 return StartMatch.None;
             }
             parser.close_unmatched();
             parser.push_child(open_thematic_break());
-            parser.advance_offset(parser.scan.line.length() - parser.scan.pos, false);
+            parser.advance_offset(parser.scan.chars.length() - parser.scan.pos, false);
             StartMatch.Leaf
         }
     }
 }
 
-function looks_like_thematic_break(line: string, start: int) -> bool {
-    let marker = line.at(start);
+function looks_like_thematic_break(chars: string[], start: int) -> bool {
+    let marker = chars.at(start);
     if (marker != "*" && marker != "-" && marker != "_") {
         return false;
     }
     let count = 0;
     let i = start;
-    while (i < line.length()) {
-        let c = line.at(i) ?? "";
+    while (i < chars.length()) {
+        let c = chars.at(i) ?? "";
         if (c == marker) {
             count += 1;
         } else if (c != " " && c != "\t") {
@@ -73,7 +81,7 @@ test "thematic break rejects extra characters" {
 }
 
 test "four-space indent is not a thematic break" {
-    assert.equal(looks_like_thematic_break("    ***", 4), true);
+    assert.equal(looks_like_thematic_break("    ***".chars(), 4), true);
     assert.equal(root.to_html("Foo\n    ***\n"), "<p>Foo\n***</p>\n")
 }
 

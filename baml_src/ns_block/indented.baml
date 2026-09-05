@@ -4,6 +4,15 @@ class IndentedCodeStart {
             "indented_code"
         }
 
+        function triggers(self) -> string[] throws never {
+            let none: string[] = [];
+            none
+        }
+
+        function allow_indented(self) -> bool throws never {
+            true
+        }
+
         function try_open(self, parser: Parser) -> StartMatch throws never {
             if (!(parser.indented && !parser.tip().ops.is_interruptible() && !parser.blank)) {
                 return StartMatch.None;

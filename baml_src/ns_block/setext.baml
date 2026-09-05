@@ -4,6 +4,14 @@ class SetextHeadingStart {
             "setext_heading"
         }
 
+        function triggers(self) -> string[] throws never {
+            ["=", "-"]
+        }
+
+        function allow_indented(self) -> bool throws never {
+            false
+        }
+
         function try_open(self, parser: Parser) -> StartMatch throws never {
             if (parser.indented) {
                 return StartMatch.None;
@@ -12,7 +20,7 @@ class SetextHeadingStart {
             if (container.type_name != OpenKind.Paragraph) {
                 return StartMatch.None;
             }
-            let level = setext_heading_level(parser.scan.line, parser.next_nonspace);
+            let level = setext_heading_level(parser.scan.chars, parser.next_nonspace);
             if (level == null) {
                 return StartMatch.None;
             }
@@ -23,26 +31,26 @@ class SetextHeadingStart {
             }
             replace_content(container, remaining);
             convert_paragraph_to_setext(parser, container, level);
-            parser.advance_offset(parser.scan.line.length() - parser.scan.pos, false);
+            parser.advance_offset(parser.scan.chars.length() - parser.scan.pos, false);
             StartMatch.Leaf
         }
     }
 }
 
-function setext_heading_level(line: string, start: int) -> int? {
-    let marker = line.at(start);
+function setext_heading_level(chars: string[], start: int) -> int? {
+    let marker = chars.at(start);
     if (marker != "=" && marker != "-") {
         return null;
     }
     let i = start;
-    while (line.at(i) == marker) {
+    while (chars.at(i) == marker) {
         i += 1;
     }
     if (i == start) {
         return null;
     }
-    while (i < line.length()) {
-        let c = line.at(i);
+    while (i < chars.length()) {
+        let c = chars.at(i);
         if (c != " " && c != "\t") {
             return null;
         }

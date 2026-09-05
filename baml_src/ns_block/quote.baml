@@ -4,11 +4,19 @@ class BlockQuoteStart {
             "block_quote"
         }
 
+        function triggers(self) -> string[] throws never {
+            [">"]
+        }
+
+        function allow_indented(self) -> bool throws never {
+            false
+        }
+
         function try_open(self, parser: Parser) -> StartMatch throws never {
             if (parser.indented) {
                 return StartMatch.None;
             }
-            if (parser.scan.line.at(parser.next_nonspace) != ">") {
+            if (parser.scan.chars.at(parser.next_nonspace) != ">") {
                 return StartMatch.None;
             }
             consume_quote_marker(parser);
@@ -22,7 +30,7 @@ class BlockQuoteStart {
 function consume_quote_marker(parser: Parser) -> void {
     parser.advance_next_nonspace();
     parser.advance_offset(1, false);
-    let c = parser.scan.line.at(parser.scan.pos);
+    let c = parser.scan.chars.at(parser.scan.pos);
     if (c == " " || c == "\t") {
         parser.advance_offset(1, true);
     }

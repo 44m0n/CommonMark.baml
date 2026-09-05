@@ -6,10 +6,10 @@ function is_digit_char(c: string?) -> bool {
     }
 }
 
-function rest_is_blank(line: string, start: int) -> bool {
+function rest_is_blank(chars: string[], start: int) -> bool {
     let i = start;
-    while (i < line.length()) {
-        let c = line.at(i);
+    while (i < chars.length()) {
+        let c = chars.at(i);
         if (c != " " && c != "\t") {
             return false;
         }
@@ -22,9 +22,9 @@ function parse_list_marker(parser: Parser) -> ListData? {
     if (parser.indent >= 4) {
         return null;
     }
-    let line = parser.scan.line;
+    let chars = parser.scan.chars;
     let i = parser.next_nonspace;
-    let c = line.at(i);
+    let c = chars.at(i);
     let interrupts = parser.last_matched().type_name == OpenKind.Paragraph;
     let marker_len = 0;
     let kind: root.ast.ListKind = root.ast.ListKind.Bullet;
@@ -37,25 +37,25 @@ function parse_list_marker(parser: Parser) -> ListData? {
         marker_len = 1;
         bullet = c ?? "";
         kind = root.ast.ListKind.Bullet;
-        let next = line.at(i);
+        let next = chars.at(i);
         if (next != null && next != " " && next != "\t") {
             return null;
         }
-        if (interrupts && rest_is_blank(line, i)) {
+        if (interrupts && rest_is_blank(chars, i)) {
             return null;
         }
     } else if (is_digit_char(c)) {
         start = 0;
         let digits = 0;
-        while (digits < 9 && is_digit_char(line.at(i))) {
-            start = start * 10 + (line.code_point_at(i) ?? 48) - 48;
+        while (digits < 9 && is_digit_char(chars.at(i))) {
+            start = start * 10 + (chars.at(i)?.code_point_at(0) ?? 48) - 48;
             i += 1;
             digits += 1;
         }
         if (interrupts && start != 1) {
             return null;
         }
-        let delim = line.at(i);
+        let delim = chars.at(i);
         if (delim != "." && delim != ")") {
             return null;
         }
@@ -63,11 +63,11 @@ function parse_list_marker(parser: Parser) -> ListData? {
         marker_len = i - parser.next_nonspace;
         delimiter = delim ?? "";
         kind = root.ast.ListKind.Ordered;
-        let next = line.at(i);
+        let next = chars.at(i);
         if (next != null && next != " " && next != "\t") {
             return null;
         }
-        if (interrupts && rest_is_blank(line, i)) {
+        if (interrupts && rest_is_blank(chars, i)) {
             return null;
         }
     } else {
@@ -88,20 +88,20 @@ function parse_list_marker(parser: Parser) -> ListData? {
     let spaces_start_pos = parser.scan.pos;
     let saved_partial = parser.partially_consumed_tab;
     while (parser.scan.column - spaces_start_col < 5) {
-        let nextc = parser.scan.line.at(parser.scan.pos);
+        let nextc = parser.scan.chars.at(parser.scan.pos);
         if (nextc != " " && nextc != "\t") {
             break;
         }
         parser.advance_offset(1, true);
     }
-    let blank_item = parser.scan.line.at(parser.scan.pos) == null;
+    let blank_item = parser.scan.chars.at(parser.scan.pos) == null;
     let spaces_after = parser.scan.column - spaces_start_col;
     if (spaces_after >= 5 || spaces_after < 1 || blank_item) {
         data.padding = marker_len + 1;
         parser.scan.column = spaces_start_col;
         parser.scan.pos = spaces_start_pos;
         parser.partially_consumed_tab = saved_partial;
-        let sp = parser.scan.line.at(parser.scan.pos);
+        let sp = parser.scan.chars.at(parser.scan.pos);
         if (sp == " " || sp == "\t") {
             parser.advance_offset(1, true);
         }
@@ -244,6 +244,14 @@ class ListItemStart {
     implements BlockStart {
         function name(self) -> string throws never {
             "list_item"
+        }
+
+        function triggers(self) -> string[] throws never {
+            ["*", "-", "+", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        }
+
+        function allow_indented(self) -> bool throws never {
+            false
         }
 
         function try_open(self, parser: Parser) -> StartMatch throws never {
@@ -468,4 +476,40 @@ test "lists spec" {
 
 test "empty list item cannot continue after a blank line" {
     assert.equal(root.to_html("-\n \n foo\n"), "<ul>\n<li></li>\n</ul>\n<p>foo</p>\n")
+}
+
+function nested_bullet_markdown(depth: int, text: string) -> string {
+    let lines: string[] = [];
+    let i = 0;
+    while (i < depth) {
+        lines.push(`${"  ".repeat(i)}- ${text}`);
+        i += 1;
+    }
+    lines.join("\n")
+}
+
+function nested_bullet_html(depth: int, text: string) -> string {
+    if (depth <= 0) {
+        return "";
+    }
+    let inner = `<li>${text}</li>\n`;
+    let i = depth - 1;
+    while (i > 0) {
+        inner = `<li>${text}\n<ul>\n${inner}</ul>\n</li>\n`;
+        i -= 1;
+    }
+    `<ul>\n${inner}</ul>\n`
+}
+
+test "tight nested lists without extra blanks" {
+    assert.equal(
+        root.to_html("- a\n  - b\n    - c\n      - d\n"),
+        "<ul>\n<li>a\n<ul>\n<li>b\n<ul>\n<li>c\n<ul>\n<li>d</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n",
+    )
+}
+
+test "deeply nested lists then blank lines close the outer list" {
+    let depth = 40;
+    let md = `${nested_bullet_markdown(depth, "x")}\n${"\n".repeat(20)}para\n`;
+    assert.equal(root.to_html(md), `${nested_bullet_html(depth, "x")}<p>para</p>\n`)
 }
