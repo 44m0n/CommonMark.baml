@@ -288,12 +288,13 @@ function escape_html(s: string) -> string {
     ) {
         return s;
     }
+    let chars = s.chars();
     let parts: string[] = [];
     let i = 0;
     let start = 0;
-    let n = s.length();
+    let n = chars.length();
     while (i < n) {
-        let c = s.at(i) ?? "";
+        let c = chars.at(i) ?? "";
         let repl = if (c == "&") {
             "&amp;"
         } else if (c == "<") {
@@ -349,25 +350,26 @@ function href_keep_ascii(code: int) -> bool {
 }
 
 function percent_encode_char(ch: string) -> string {
-    let hex = ch.to_utf8().to_hex().to_upper_case();
+    let hex = ch.to_utf8().to_hex().to_upper_case().chars();
     let parts: string[] = [];
     let i = 0;
     while (i < hex.length()) {
-        parts.push(`%${hex.slice(i, i + 2)}`);
+        parts.push(`%${hex.at(i) ?? ""}${hex.at(i + 1) ?? ""}`);
         i += 2;
     }
     parts.join("")
 }
 
 function escape_href(s: string) -> string {
+    let chars = s.chars();
     let parts: string[] = [];
     let i = 0;
-    let n = s.length();
+    let n = chars.length();
     while (i < n) {
-        let ch = s.at(i) ?? "";
+        let ch = chars.at(i) ?? "";
         if (ch == "%") {
-            let n1 = s.at(i + 1) ?? "";
-            let n2 = s.at(i + 2) ?? "";
+            let n1 = chars.at(i + 1) ?? "";
+            let n2 = chars.at(i + 2) ?? "";
             if (n1.is_ascii_hex() && n2.is_ascii_hex()) {
                 parts.push(`%${n1}${n2}`);
                 i += 3;
@@ -507,4 +509,14 @@ test "without safe file urls pass through" {
 
 test "tight list item html block is preceded by a newline" {
     assert.equal(root.to_html("-\n   <div>\n"), "<ul>\n<li>\n <div>\n</li>\n</ul>\n")
+}
+
+test "escape_html encodes specials via chars" {
+    assert.equal(escape_html("a&b<c>d\"e"), "a&amp;b&lt;c&gt;d&quot;e");
+    assert.equal(escape_html("plain"), "plain")
+}
+
+test "escape_href keeps percent sequences and encodes space" {
+    assert.equal(escape_href("%2Fok"), "%2Fok");
+    assert.equal(escape_href("a b"), "a%20b")
 }

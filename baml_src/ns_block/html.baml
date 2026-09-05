@@ -2,13 +2,14 @@ function strip_trailing_html_blanks(s: string) -> string {
     if (!s.ends_with("\n")) {
         return s;
     }
-    let end = s.length();
+    let chars = s.chars();
+    let end = chars.length();
     while (end > 0) {
         let i = end - 1;
-        while (i >= 0 && (s.at(i) == " " || s.at(i) == "\t")) {
+        while (i >= 0 && (chars.at(i) == " " || chars.at(i) == "\t")) {
             i -= 1;
         }
-        if (i >= 0 && s.at(i) == "\n") {
+        if (i >= 0 && chars.at(i) == "\n") {
             end = i;
         } else {
             break;
@@ -68,15 +69,25 @@ function open_html_block(html_type: int) -> Open {
     o
 }
 
-function read_html_tag_name(s: string, start: int) -> string? {
-    if (!root.scan.is_ascii_letter_char(s.at(start))) {
+function scan_html_tag_name(chars: string[], start: int) -> int? {
+    if (!root.scan.is_ascii_letter_char(chars.at(start))) {
         return null;
     }
     let i = start + 1;
-    while (root.scan.is_tag_name_char(s.at(i))) {
+    while (root.scan.is_tag_name_char(chars.at(i))) {
         i += 1;
     }
-    s.slice(start, i)
+    i
+}
+
+function tag_name_from_chars(chars: string[], start: int, end: int) -> string {
+    let parts: string[] = [];
+    let i = start;
+    while (i < end) {
+        parts.push(chars.at(i) ?? "");
+        i += 1;
+    }
+    parts.join("")
 }
 
 function is_block_html_tag(name: string) -> bool {
@@ -150,17 +161,17 @@ function is_block_html_tag(name: string) -> bool {
     }
 }
 
-function skip_space_tab(s: string, i: int) -> int {
-    while (s.at(i) == " " || s.at(i) == "\t") {
+function skip_space_tab(chars: string[], i: int) -> int {
+    while (chars.at(i) == " " || chars.at(i) == "\t") {
         i += 1;
     }
     i
 }
 
-function parse_unquoted_attr_value(s: string, i: int) -> int? {
+function parse_unquoted_attr_value(chars: string[], i: int) -> int? {
     let start = i;
-    while (i < s.length()) {
-        let c = s.at(i) ?? "";
+    while (i < chars.length()) {
+        let c = chars.at(i) ?? "";
         let code = c.code_point_at(0) ?? 0;
         if (c == "\"" || c == "'" || c == "=" || c == "<" || c == ">" || c == "`" || code <= 0x20) {
             break;
@@ -174,13 +185,13 @@ function parse_unquoted_attr_value(s: string, i: int) -> int? {
     }
 }
 
-function parse_quoted_attr_value(s: string, i: int, quote: string) -> int? {
-    if (s.at(i) != quote) {
+function parse_quoted_attr_value(chars: string[], i: int, quote: string) -> int? {
+    if (chars.at(i) != quote) {
         return null;
     }
     i += 1;
-    while (i < s.length()) {
-        if (s.at(i) == quote) {
+    while (i < chars.length()) {
+        if (chars.at(i) == quote) {
             return i + 1;
         }
         i += 1;
@@ -188,31 +199,31 @@ function parse_quoted_attr_value(s: string, i: int, quote: string) -> int? {
     null
 }
 
-function parse_attr_value(s: string, i: int) -> int? {
-    let q = s.at(i);
+function parse_attr_value(chars: string[], i: int) -> int? {
+    let q = chars.at(i);
     if (q == "\"" || q == "'") {
-        parse_quoted_attr_value(s, i, q ?? "\"")
+        parse_quoted_attr_value(chars, i, q ?? "\"")
     } else {
-        parse_unquoted_attr_value(s, i)
+        parse_unquoted_attr_value(chars, i)
     }
 }
 
-function parse_attribute(s: string, i: int) -> int? {
-    let j = skip_space_tab(s, i);
+function parse_attribute(chars: string[], i: int) -> int? {
+    let j = skip_space_tab(chars, i);
     if (j == i) {
         return null;
     }
-    if (!root.scan.is_attr_name_start(s.at(j))) {
+    if (!root.scan.is_attr_name_start(chars.at(j))) {
         return null;
     }
     j += 1;
-    while (root.scan.is_attr_name_char(s.at(j))) {
+    while (root.scan.is_attr_name_char(chars.at(j))) {
         j += 1;
     }
-    let k = skip_space_tab(s, j);
-    if (s.at(k) == "=") {
-        k = skip_space_tab(s, k + 1);
-        let v = parse_attr_value(s, k);
+    let k = skip_space_tab(chars, j);
+    if (chars.at(k) == "=") {
+        k = skip_space_tab(chars, k + 1);
+        let v = parse_attr_value(chars, k);
         if (v == null) {
             return null;
         }
@@ -222,52 +233,52 @@ function parse_attribute(s: string, i: int) -> int? {
     }
 }
 
-function parse_open_tag(s: string, i: int) -> int? {
-    if (s.at(i) != "<") {
+function parse_open_tag(chars: string[], i: int) -> int? {
+    if (chars.at(i) != "<") {
         return null;
     }
-    let name = read_html_tag_name(s, i + 1);
-    if (name == null) {
+    let name_end = scan_html_tag_name(chars, i + 1);
+    if (name_end == null) {
         return null;
     }
-    let j = i + 1 + name.length();
+    let j = name_end;
     while (true) {
-        let next = parse_attribute(s, j);
+        let next = parse_attribute(chars, j);
         if (next == null) {
             break;
         }
         j = next;
     }
-    j = skip_space_tab(s, j);
-    if (s.at(j) == "/") {
+    j = skip_space_tab(chars, j);
+    if (chars.at(j) == "/") {
         j += 1;
     }
-    if (s.at(j) == ">") {
+    if (chars.at(j) == ">") {
         j + 1
     } else {
         null
     }
 }
 
-function parse_close_tag(s: string, i: int) -> int? {
-    if (s.at(i) != "<" || s.at(i + 1) != "/") {
+function parse_close_tag(chars: string[], i: int) -> int? {
+    if (chars.at(i) != "<" || chars.at(i + 1) != "/") {
         return null;
     }
-    let name = read_html_tag_name(s, i + 2);
-    if (name == null) {
+    let name_end = scan_html_tag_name(chars, i + 2);
+    if (name_end == null) {
         return null;
     }
-    let j = skip_space_tab(s, i + 2 + name.length());
-    if (s.at(j) == ">") {
+    let j = skip_space_tab(chars, name_end);
+    if (chars.at(j) == ">") {
         j + 1
     } else {
         null
     }
 }
 
-function rest_only_space_tab(s: string, i: int) -> bool {
-    while (i < s.length()) {
-        let c = s.at(i);
+function rest_only_space_tab(chars: string[], i: int) -> bool {
+    while (i < chars.length()) {
+        let c = chars.at(i);
         if (c != " " && c != "\t") {
             return false;
         }
@@ -276,15 +287,16 @@ function rest_only_space_tab(s: string, i: int) -> bool {
     true
 }
 
-function ascii_starts_with_ci(s: string, prefix: string) -> bool {
-    let n = prefix.length();
-    if (s.length() < n) {
+function ascii_starts_with_ci(chars: string[], start: int, prefix: string) -> bool {
+    let p = prefix.chars();
+    let n = p.length();
+    if (start + n > chars.length()) {
         return false;
     }
     let i = 0;
     while (i < n) {
-        let ca = s.code_point_at(i) ?? 0;
-        let cb = prefix.code_point_at(i) ?? 0;
+        let ca = chars.at(start + i)?.code_point_at(0) ?? 0;
+        let cb = p.at(i)?.code_point_at(0) ?? 0;
         if (ca >= 65 && ca <= 90) {
             ca += 32;
         }
@@ -299,67 +311,88 @@ function ascii_starts_with_ci(s: string, prefix: string) -> bool {
     true
 }
 
-function type7_open_tag_ok(s: string) -> bool {
-    let name = read_html_tag_name(s, 1) ?? "";
-    let n = name.to_lower_case();
+function chars_match(chars: string[], start: int, literal: string) -> bool {
+    let lit = literal.chars();
+    let n = lit.length();
+    if (start + n > chars.length()) {
+        return false;
+    }
+    let i = 0;
+    while (i < n) {
+        if (chars.at(start + i) != lit.at(i)) {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
+function type7_open_tag_ok(chars: string[], start: int) -> bool {
+    let name_end = scan_html_tag_name(chars, start + 1);
+    if (name_end == null) {
+        return true;
+    }
+    let n = tag_name_from_chars(chars, start + 1, name_end).to_lower_case();
     n != "script" && n != "pre" && n != "style" && n != "textarea"
 }
 
-function html_block_type(s: string, allow_type7: bool) -> int? {
-    if (s.at(0) != "<") {
+function html_block_type(chars: string[], start: int, allow_type7: bool) -> int? {
+    if (chars.at(start) != "<") {
         return null;
     }
     if (
-        ascii_starts_with_ci(s, "<script")
-            || ascii_starts_with_ci(s, "<pre")
-            || ascii_starts_with_ci(s, "<style")
-            || ascii_starts_with_ci(s, "<textarea")
+        ascii_starts_with_ci(chars, start, "<script")
+            || ascii_starts_with_ci(chars, start, "<pre")
+            || ascii_starts_with_ci(chars, start, "<style")
+            || ascii_starts_with_ci(chars, start, "<textarea")
     ) {
-        let name = read_html_tag_name(s, 1) ?? "";
-        let n = name.to_lower_case();
-        if (n == "script" || n == "pre" || n == "style" || n == "textarea") {
-            let after = s.at(1 + name.length());
-            if (after == null || after == " " || after == "\t" || after == ">") {
-                return 1;
+        let name_end = scan_html_tag_name(chars, start + 1);
+        if (name_end != null) {
+            let n = tag_name_from_chars(chars, start + 1, name_end).to_lower_case();
+            if (n == "script" || n == "pre" || n == "style" || n == "textarea") {
+                let after = chars.at(name_end);
+                if (after == null || after == " " || after == "\t" || after == ">") {
+                    return 1;
+                }
             }
         }
     }
-    if (s.starts_with("<!--")) {
+    if (chars_match(chars, start, "<!--")) {
         return 2;
     }
-    if (s.starts_with("<?")) {
+    if (chars_match(chars, start, "<?")) {
         return 3;
     }
-    if (s.starts_with("<!") && root.scan.is_ascii_letter_char(s.at(2))) {
+    if (chars_match(chars, start, "<!") && root.scan.is_ascii_letter_char(chars.at(start + 2))) {
         return 4;
     }
-    if (s.starts_with("<![CDATA[")) {
+    if (chars_match(chars, start, "<![CDATA[")) {
         return 5;
     }
-    let i = 1;
-    if (s.at(1) == "/") {
-        i = 2;
+    let i = start + 1;
+    if (chars.at(start + 1) == "/") {
+        i = start + 2;
     }
-    let name = read_html_tag_name(s, i);
-    if (name != null) {
-        if (is_block_html_tag(name)) {
-            let after = s.at(i + name.length());
+    let name_end = scan_html_tag_name(chars, i);
+    if (name_end != null) {
+        if (is_block_html_tag(tag_name_from_chars(chars, i, name_end))) {
+            let after = chars.at(name_end);
             if (after == null || after == " " || after == "\t" || after == ">") {
                 return 6;
             }
-            if (after == "/" && s.at(i + name.length() + 1) == ">") {
+            if (after == "/" && chars.at(name_end + 1) == ">") {
                 return 6;
             }
         }
     }
     if (allow_type7) {
-        let end = parse_open_tag(s, 0);
+        let end = parse_open_tag(chars, start);
         let opened = end != null;
         if (end == null) {
-            end = parse_close_tag(s, 0);
+            end = parse_close_tag(chars, start);
         }
         if (end != null) {
-            if (rest_only_space_tab(s, end) && (!opened || type7_open_tag_ok(s))) {
+            if (rest_only_space_tab(chars, end) && (!opened || type7_open_tag_ok(chars, start))) {
                 return 7;
             }
         }
@@ -425,8 +458,7 @@ class HtmlBlockStart {
                         && !parser.blank
                         && parser.tip().type_name == OpenKind.Paragraph
                 );
-            let s = parser.scan.line.slice(parser.next_nonspace, parser.scan.line.length());
-            let html_type = html_block_type(s, allow_type7);
+            let html_type = html_block_type(parser.scan.chars, parser.next_nonspace, allow_type7);
             if (html_type == null) {
                 return StartMatch.None;
             }
