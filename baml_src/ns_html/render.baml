@@ -53,19 +53,11 @@ function html_item_kids(blocks: root.ast.Block[], tight: bool) -> HtmlJob {
     }
 }
 
-function block_html_starts_lt(b: root.ast.Block) -> bool {
-    if let h: root.ast.HtmlBlock = b {
-        h.literal.starts_with("<")
+function last_chunk_ends_nl(out: string[]) -> bool {
+    if let last: string = out.at(out.length() - 1) {
+        last.ends_with("\n")
     } else {
-        true
-    }
-}
-
-function block_html_ends_nl(b: root.ast.Block) -> bool {
-    if let h: root.ast.HtmlBlock = b {
-        h.literal.ends_with("\n")
-    } else {
-        true
+        false
     }
 }
 
@@ -178,11 +170,11 @@ function render_html_jobs(start: HtmlJob, safe: bool) -> string {
                     job.inner_ends_nl = chunk.ends_with("\n");
                 }
             } else {
-                if (!job.inner_ends_nl && block_html_starts_lt(b)) {
+                if (!job.inner_ends_nl && !last_chunk_ends_nl(out)) {
                     out.push("\n");
                 }
-                job.inner_ends_nl = block_html_ends_nl(b);
                 push_block_work(out, jobs, b, safe);
+                job.inner_ends_nl = last_chunk_ends_nl(out);
             }
         }
     }
@@ -414,7 +406,10 @@ function dangerous_url(url: string) -> bool {
         i += 1;
     }
     let rest = url.slice(i, url.length()).to_lower_case();
-    rest.starts_with("javascript:") || rest.starts_with("vbscript:") || rest.starts_with("data:")
+    rest.starts_with("javascript:")
+        || rest.starts_with("vbscript:")
+        || rest.starts_with("data:")
+        || rest.starts_with("file:")
 }
 
 function safe_href(url: string, safe: bool) -> string {
@@ -455,4 +450,64 @@ test "deep nested images render" {
     let html = root.to_html(md);
     assert.is_true(html.includes("<img"));
     assert.is_true(html.includes("alt=\"a\""))
+}
+
+test "dangerous_url rejects file javascript vbscript data" {
+    assert.is_true(dangerous_url("file:///etc/passwd"));
+    assert.is_true(dangerous_url("FILE:foo"));
+    assert.is_true(dangerous_url(" javascript:alert(1)"));
+    assert.is_true(dangerous_url("\tvbscript:x"));
+    assert.is_true(dangerous_url("data:text/html,x"));
+    assert.equal(dangerous_url("http://example.com"), false);
+    assert.equal(dangerous_url("/etc/passwd"), false)
+}
+
+test "safe_href empties file urls only when safe" {
+    assert.equal(safe_href("file:///etc/passwd", true), "");
+    assert.equal(safe_href("FILE:foo", true), "");
+    assert.equal(safe_href("javascript:alert(1)", true), "");
+    assert.equal(safe_href("file:///etc/passwd", false), "file:///etc/passwd");
+    assert.equal(safe_href("FILE:foo", false), "FILE:foo")
+}
+
+test "render_inlines safe empties file href" {
+    let kids: root.ast.Inline[] = [root.ast.Text { literal: "x" }];
+    let file_link = root.ast.Link { destination: "file:///etc/passwd", title: null, children: kids };
+    let file_nodes: root.ast.Inline[] = [file_link];
+    assert.equal(render_inlines(file_nodes, safe = true), "<a href=\"\">x</a>");
+    assert.equal(render_inlines(file_nodes, safe = false), "<a href=\"file:///etc/passwd\">x</a>");
+    let js_kids: root.ast.Inline[] = [root.ast.Text { literal: "x" }];
+    let js_link = root.ast.Link { destination: "javascript:alert(1)", title: null, children: js_kids };
+    let js_nodes: root.ast.Inline[] = [js_link];
+    assert.equal(render_inlines(js_nodes, safe = true), "<a href=\"\">x</a>");
+    let file_upper = root.ast.Link {
+        destination: "FILE:foo",
+        title: null,
+        children: [root.ast.Text { literal: "x" }],
+    };
+    assert.equal(render_inlines([file_upper], safe = true), "<a href=\"\">x</a>")
+}
+
+test "safe mode empties file and javascript urls" {
+    assert.equal(
+        root.to_html("[x](file:///etc/passwd)\n", safe = true),
+        "<p><a href=\"\">x</a></p>\n",
+    );
+    assert.equal(root.to_html("[x](FILE:foo)\n", safe = true), "<p><a href=\"\">x</a></p>\n");
+    assert.equal(
+        root.to_html("[x](javascript:alert(1))\n", safe = true),
+        "<p><a href=\"\">x</a></p>\n",
+    )
+}
+
+test "without safe file urls pass through" {
+    assert.equal(
+        root.to_html("[x](file:///etc/passwd)\n"),
+        "<p><a href=\"file:///etc/passwd\">x</a></p>\n",
+    );
+    assert.equal(root.to_html("[x](FILE:foo)\n"), "<p><a href=\"FILE:foo\">x</a></p>\n")
+}
+
+test "tight list item html block is preceded by a newline" {
+    assert.equal(root.to_html("-\n   <div>\n"), "<ul>\n<li>\n <div>\n</li>\n</ul>\n")
 }
