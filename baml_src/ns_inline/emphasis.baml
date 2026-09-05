@@ -256,3 +256,8 @@ test "arabic fatha is not unicode punctuation" {
     };
     assert.equal(is_unicode_punct(fatha), false)
 }
+
+test "unmatched emphasis markers stay text" {
+    let stars = "*".repeat(400);
+    assert.equal(root.to_html(`${stars}a\n`), `<p>${stars}a</p>\n`)
+}

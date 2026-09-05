@@ -8,18 +8,23 @@ function max_dest_paren_depth() -> int {
 }
 
 function parse_link_label(s: string, i: int) -> int? {
-    if (s.at(i) != "[") {
+    parse_link_label_chars(s.chars(), i)
+}
+
+function parse_link_label_chars(chars: string[], i: int) -> int? {
+    if (chars.at(i) != "[") {
         return null;
     }
     let j = i + 1;
-    while (j < s.length()) {
+    let n = chars.length();
+    while (j < n) {
         if (j - i > 1000) {
             return null;
         }
-        let c = s.at(j) ?? "";
+        let c = chars.at(j) ?? "";
         if (c == "\\") {
             j += 1;
-            if (j < s.length()) {
+            if (j < n) {
                 j += 1;
             }
         } else if (c == "[") {
@@ -34,16 +39,26 @@ function parse_link_label(s: string, i: int) -> int? {
 }
 
 function parse_link_destination(s: string, i: int, table: map<string, string>) -> ScanPiece? {
-    if (s.at(i) == "<") {
+    parse_link_destination_chars(s, s.chars(), i, table = table)
+}
+
+function parse_link_destination_chars(
+    s: string,
+    chars: string[],
+    i: int,
+    table: map<string, string>,
+) -> ScanPiece? {
+    let n = chars.length();
+    if (chars.at(i) == "<") {
         let j = i + 1;
-        while (j < s.length()) {
-            let c = s.at(j) ?? "";
+        while (j < n) {
+            let c = chars.at(j) ?? "";
             if (c == "\n" || c == "<") {
                 return null;
             }
             if (c == "\\") {
                 j += 1;
-                if (j < s.length()) {
+                if (j < n) {
                     j += 1;
                 }
             } else if (c == ">") {
@@ -56,9 +71,9 @@ function parse_link_destination(s: string, i: int, table: map<string, string>) -
     }
     let save = i;
     let open_parens = 0;
-    while (i < s.length()) {
-        let c = s.at(i) ?? "";
-        if (c == "\\" && root.scan.is_escapable(s.at(i + 1))) {
+    while (i < n) {
+        let c = chars.at(i) ?? "";
+        if (c == "\\" && root.scan.is_escapable(chars.at(i + 1))) {
             i += 2;
         } else if (c == "(") {
             open_parens += 1;
@@ -89,7 +104,16 @@ function parse_link_destination(s: string, i: int, table: map<string, string>) -
 }
 
 function parse_link_title(s: string, i: int, table: map<string, string>) -> ScanPiece? {
-    let opener = s.at(i);
+    parse_link_title_chars(s, s.chars(), i, table = table)
+}
+
+function parse_link_title_chars(
+    s: string,
+    chars: string[],
+    i: int,
+    table: map<string, string>,
+) -> ScanPiece? {
+    let opener = chars.at(i);
     if (opener != "\"" && opener != "'" && opener != "(") {
         return null;
     }
@@ -99,14 +123,15 @@ function parse_link_title(s: string, i: int, table: map<string, string>) -> Scan
         opener ?? "\""
     };
     let j = i + 1;
-    while (j < s.length()) {
-        let c = s.at(j) ?? "";
-        if (c == "\n" && s.at(j + 1) == "\n") {
+    let n = chars.length();
+    while (j < n) {
+        let c = chars.at(j) ?? "";
+        if (c == "\n" && chars.at(j + 1) == "\n") {
             return null;
         }
         if (c == "\\") {
             j += 1;
-            if (j < s.length()) {
+            if (j < n) {
                 j += 1;
             }
         } else if (opener == "(" && c == "(") {
@@ -123,11 +148,13 @@ function parse_link_title(s: string, i: int, table: map<string, string>) -> Scan
 function normalize_reference(raw_label: string) -> string {
     let inner = raw_label.slice(1, raw_label.length() - 1);
     let parts: string[] = [];
+    let chars = inner.chars();
     let i = 0;
     let last_space = false;
     let started = false;
-    while (i < inner.length()) {
-        let c = inner.at(i) ?? "";
+    let n = chars.length();
+    while (i < n) {
+        let c = chars.at(i) ?? "";
         if (c == " " || c == "\t" || c == "\n") {
             if (started) {
                 last_space = true;
@@ -140,9 +167,9 @@ function normalize_reference(raw_label: string) -> string {
             }
             let start = i;
             i += 1;
-            while (i < inner.length()) {
-                let n = inner.at(i) ?? "";
-                if (n == " " || n == "\t" || n == "\n") {
+            while (i < n) {
+                let nxt = chars.at(i) ?? "";
+                if (nxt == " " || nxt == "\t" || nxt == "\n") {
                     break;
                 }
                 i += 1;

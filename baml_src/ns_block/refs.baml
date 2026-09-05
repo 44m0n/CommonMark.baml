@@ -2,23 +2,19 @@ function unescape_string(s: string, table: map<string, string>) -> string {
     root.inline.unescape_markdown(s, table = table)
 }
 
-function skip_spaces_tabs(s: string, i: int) -> int {
-    root.scan.skip_space_tab_index(s, i)
-}
-
-function skip_spnl(s: string, i: int) -> int {
-    i = skip_spaces_tabs(s, i);
-    if (s.at(i) == "\n") {
-        i = skip_spaces_tabs(s, i + 1);
+function skip_spnl_chars(chars: string[], i: int) -> int {
+    i = root.scan.skip_space_tab_chars(chars, i);
+    if (chars.at(i) == "\n") {
+        i = root.scan.skip_space_tab_chars(chars, i + 1);
     }
     i
 }
 
-function at_line_end(s: string, i: int) -> int? {
-    i = skip_spaces_tabs(s, i);
-    if (i >= s.length()) {
+function at_line_end_chars(chars: string[], i: int) -> int? {
+    i = root.scan.skip_space_tab_chars(chars, i);
+    if (i >= chars.length()) {
         i
-    } else if (s.at(i) == "\n") {
+    } else if (chars.at(i) == "\n") {
         i + 1
     } else {
         null
@@ -30,26 +26,27 @@ function parse_one_reference(
     refs: map<string, root.ast.LinkRef>,
     table: map<string, string>,
 ) -> int {
-    if (s.at(0) != "[") {
+    let chars = s.chars();
+    if (chars.at(0) != "[") {
         return 0;
     }
-    let label_end = root.inline.parse_link_label(s, 0);
+    let label_end = root.inline.parse_link_label_chars(chars, 0);
     if (label_end == null) {
         return 0;
     }
-    if (s.at(label_end) != ":") {
+    if (chars.at(label_end) != ":") {
         return 0;
     }
-    let after_colon = skip_spnl(s, label_end + 1);
-    let dest = root.inline.parse_link_destination(s, after_colon, table = table);
+    let after_colon = skip_spnl_chars(chars, label_end + 1);
+    let dest = root.inline.parse_link_destination_chars(s, chars, after_colon, table = table);
     if let d: root.inline.ScanPiece = dest {
         let dest_end = d.end;
         let destination = d.value;
         let before_title = dest_end;
-        let i = skip_spnl(s, dest_end);
+        let i = skip_spnl_chars(chars, dest_end);
         let title: string? = null;
         if (i != before_title) {
-            let t = root.inline.parse_link_title(s, i, table = table);
+            let t = root.inline.parse_link_title_chars(s, chars, i, table = table);
             if let tv: root.inline.ScanPiece = t {
                 i = tv.end;
                 title = tv.value;
@@ -58,11 +55,11 @@ function parse_one_reference(
         if (title == null) {
             i = before_title;
         }
-        let end = at_line_end(s, i);
+        let end = at_line_end_chars(chars, i);
         if (end == null) {
             if (title != null) {
                 title = null;
-                end = at_line_end(s, before_title);
+                end = at_line_end_chars(chars, before_title);
             }
         }
         if let consumed: int = end {
@@ -89,7 +86,7 @@ function consume_link_reference_definitions(
     table: map<string, string>,
 ) -> string {
     let rest = s;
-    while (rest.at(0) == "[") {
+    while (rest.starts_with("[")) {
         let n = parse_one_reference(rest, refs, table = table);
         if (n == 0) {
             break;
@@ -166,7 +163,7 @@ test "link destination allows 32 nested parentheses but not 33" {
 }
 
 test "repeated unmatched link parens stay text" {
-    let bomb = "[a](".repeat(200);
+    let bomb = "[a](".repeat(400);
     assert.equal(root.to_html(bomb), `<p>${bomb}</p>\n`)
 }
 

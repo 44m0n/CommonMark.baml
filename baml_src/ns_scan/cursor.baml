@@ -64,12 +64,15 @@ function is_space_or_tab(ch: string) -> bool {
     ch == " " || ch == "\t"
 }
 
-function skip_space_tab_index(s: string, i: int) -> int {
-    let chars = s.chars();
+function skip_space_tab_chars(chars: string[], i: int) -> int {
     while (is_space_or_tab(chars.at(i) ?? "")) {
         i += 1;
     }
     i
+}
+
+function skip_space_tab_index(s: string, i: int) -> int {
+    skip_space_tab_chars(s.chars(), i)
 }
 
 function trim_space_tab(s: string) -> string {
@@ -319,4 +322,10 @@ test "skip_spaces_and_tabs counts virtual indent" {
     let s = line_scan("\t foo");
     assert.equal(skip_spaces_and_tabs(s), 5);
     assert.equal(peek(s), "f")
+}
+
+test "skip_space_tab_chars walks a materialized array" {
+    let chars = "  \tfoo".chars();
+    assert.equal(skip_space_tab_chars(chars, 0), 3);
+    assert.equal(skip_space_tab_index("  \tfoo", 0), 3)
 }

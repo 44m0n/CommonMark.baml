@@ -351,9 +351,11 @@ class HeadingOps {
 }
 
 function is_blank_text(s: string) -> bool {
+    let chars = s.chars();
     let i = 0;
-    while (i < s.length()) {
-        let c = s.at(i);
+    let n = chars.length();
+    while (i < n) {
+        let c = chars.at(i);
         if (c != " " && c != "\t") {
             return false;
         }
@@ -427,4 +429,11 @@ class CodeBlockOps {
             false
         }
     }
+}
+
+test "blank text is only spaces and tabs" {
+    assert.equal(is_blank_text(""), true);
+    assert.equal(is_blank_text(" \t  "), true);
+    assert.equal(is_blank_text(" a"), false);
+    assert.equal(is_blank_text(`${" ".repeat(200)}x`), false)
 }

@@ -160,3 +160,9 @@ test "closing fence must be at least as long and unindented past three" {
 test "fenced code spec" {
     assert.equal(root.spec.spec_failures("Fenced code blocks"), [])
 }
+
+test "large fenced block copies the literal through" {
+    let body = "x\n".repeat(200);
+    let md = "```\n" + body + "```\n";
+    assert.equal(root.to_html(md), "<pre><code>" + body + "</code></pre>\n")
+}
