@@ -35,8 +35,13 @@ function spec_example(
 function spec_failures(
     section: string,
 ) -> int[] throws baml.errors.Io | baml.errors.ParseError | baml.json.JsonParseError | baml.json.JsonDecodeError {
+    let examples = examples_in(section);
+    //# Reject unknown spec sections
+    if (examples.length() == 0) {
+        baml.sys.panic(`unknown CommonMark spec section: ${section}`)
+    }
     let failed: int[] = [];
-    for (let t in examples_in(section)) {
+    for (let t in examples) {
         if (root.to_html(t.markdown) != t.html) {
             let _ = failed.push(t.example);
         }
@@ -58,5 +63,6 @@ function assert_spec_examples(
 }
 
 test "spec dump has 652 examples" {
-    assert.equal(load_spec_tests().length(), 652)
+    assert.equal(load_spec_tests().length(), 652);
+    assert.is_true(examples_in("Tabs").length() > 0)
 }
