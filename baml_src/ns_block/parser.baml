@@ -119,6 +119,9 @@ class Parser {
 
     function push_child(self, child: Open) -> void {
         while (!self.tip().ops.can_contain(child.type_name)) {
+            if (self.stack.length() <= 1) {
+                baml.sys.panic("cannot attach OpenKind.Item: list items require an enclosing list");
+            }
             self.finalize_tip();
         }
         if let item: root.ast.ListItem = child.ast {
