@@ -1,5 +1,6 @@
 class LineScan {
     line: string,
+    chars: string[],
     pos: int,
     column: int,
 }
@@ -9,19 +10,23 @@ function preprocess(input: string) -> string {
 }
 
 function line_scan(line: string) -> LineScan {
-    LineScan { line: line, pos: 0, column: 0 }
+    LineScan { line: line, chars: line.chars(), pos: 0, column: 0 }
 }
 
 function peek(scan: LineScan) -> string? {
-    scan.line.at(scan.pos)
+    scan.chars.at(scan.pos)
 }
 
 function peek_code(scan: LineScan) -> int? {
-    scan.line.code_point_at(scan.pos)
+    scan.chars.at(scan.pos)?.code_point_at(0)
+}
+
+function char_at(scan: LineScan, i: int) -> string? {
+    scan.chars.at(i)
 }
 
 function is_eof(scan: LineScan) -> bool {
-    scan.pos >= scan.line.length()
+    scan.pos >= scan.chars.length()
 }
 
 function tab_spaces(column: int) -> int {
@@ -29,7 +34,7 @@ function tab_spaces(column: int) -> int {
 }
 
 function bump(scan: LineScan) -> string? {
-    let ch = scan.line.at(scan.pos);
+    let ch = scan.chars.at(scan.pos);
     if (ch == null) {
         return null;
     }
@@ -60,12 +65,13 @@ function is_space_or_tab(ch: string) -> bool {
 }
 
 function trim_space_tab(s: string) -> string {
+    let chars = s.chars();
     let start = 0;
-    let end = s.length();
-    while (start < end && is_space_or_tab(s.at(start) ?? "")) {
+    let end = chars.length();
+    while (start < end && is_space_or_tab(chars.at(start) ?? "")) {
         start += 1;
     }
-    while (end > start && is_space_or_tab(s.at(end - 1) ?? "")) {
+    while (end > start && is_space_or_tab(chars.at(end - 1) ?? "")) {
         end -= 1;
     }
     s.slice(start, end)
@@ -153,9 +159,10 @@ function case_fold_special(code: int) -> string? {
 
 function unicode_case_fold(s: string) -> string {
     let parts: string[] = [];
+    let chars = s.chars();
     let i = 0;
-    while (i < s.length()) {
-        let c = s.at(i) ?? "";
+    while (i < chars.length()) {
+        let c = chars.at(i) ?? "";
         let code = c.code_point_at(0) ?? 0;
         if let folded: string = case_fold_special(code) {
             parts.push(folded);
