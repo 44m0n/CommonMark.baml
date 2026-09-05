@@ -2,11 +2,16 @@
 name = "CommonMark.baml"
 # Tested with BAML toolchain 0.18.0 (canary): `baml toolchain use 0.18.0`
 
-# [scripts]
-# dev = "-f main"
+# Language-bridge SDKs: `baml generate` writes `baml_sdk/` under each output_dir.
+# Consumers install the matching runtime (`baml-bridge` / `@boundaryml/baml-bridge`)
+# and import the generated package. Go and C# require naming_convention = "language".
 
-# Add a client generator, then generate its SDK:
-#   baml generate add python/pydantic2
-#   baml generate
-#
-# Run `baml generate add --help` to see every supported output type.
+[generator.python]
+output_type = "python/pydantic"
+output_dir = "generated/python"
+naming_convention = "preserve-case"
+
+[generator.typescript]
+output_type = "typescript/node"
+output_dir = "generated/typescript"
+naming_convention = "preserve-case"

@@ -62,11 +62,17 @@ plus the AST types in `ns_ast` (`Document`, `Block`, `Inline`, and their classes
 
 After `parse()`, `Paragraph.raw` / `Heading.raw` are empty; `last_line_blank` is false on every node; `List.tight` is already computed. When building an AST for `render_html`, set `raw: ""` and `last_line_blank: false`.
 
+## Limits
+
+`parse`, `render_html`, `to_html`, and `bamark` have no timeout, no max input size, and no nest-depth cap. Callers that accept untrusted Markdown must bound bytes and wall time themselves. `safe` does not do that. Details: [docs/usage.md](docs/usage.md#limits).
+
 ## Safe mode
 
 `to_html` is not safe for untrusted Markdown by default: raw HTML and URL schemes such as `javascript:` pass through, matching CommonMark.
 
-Pass `safe = true` to omit raw HTML as `<!-- raw HTML omitted -->` and to empty `href` / `src` values whose scheme is `javascript:`, `vbscript:`, `data:`, or `file:` (case-insensitive, after leading space/tab including other C0). That is HTML/script mitigation, not a general sanitizer: `http:` / `https:` / relative URLs still pass; attributes are not rewritten; CPU is not bounded.
+Pass `safe = true` to omit raw HTML as `<!-- raw HTML omitted -->` and to empty `href` / `src` values whose scheme is `javascript:`, `vbscript:`, `data:`, or `file:` (case-insensitive, after leading C0 controls, spaces, and tabs — code points `<= 0x20`). That is HTML/script mitigation, not a general sanitizer: `http:` / `https:` / relative URLs still pass; attributes are not rewritten.
+
+`safe` only changes HTML. It does not cap parse or render cost; see [Limits](#limits).
 
 Details: [docs/html.md](docs/html.md).
 
@@ -104,7 +110,7 @@ Namespaces live under `baml_src/`. [docs/architecture.md](docs/architecture.md) 
 ## Documentation
 
 - [docs/README.md](docs/README.md) — documentation index
-- [docs/usage.md](docs/usage.md) — library and CLI
+- [docs/usage.md](docs/usage.md) — library, CLI, and limits
 - [docs/coverage.md](docs/coverage.md) — CommonMark 0.31.2 conformance
 - [docs/ast.md](docs/ast.md) — `Document` / `Block` / `Inline`
 - [docs/extensions.md](docs/extensions.md) — `ParseOptions`, `BlockStart`, `InlineParseRule`

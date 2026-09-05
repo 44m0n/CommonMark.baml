@@ -88,3 +88,4 @@ Types are in `root.ast` ([ast.md](ast.md)). HTML is produced by `ns_html/render.
 - Front matter
 - Smart punctuation
 - Source maps / positions (the AST has no source offsets)
+- Bounding parse time, input size, or nest depth (callers must; see [usage.md](usage.md#limits))

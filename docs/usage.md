@@ -1,6 +1,6 @@
 # Usage
 
-This page covers calling CommonMark.baml from BAML and running the `bamark` CLI. HTML mapping and `safe` mode are in [html.md](html.md). Compile checks and the spec suite are in [testing.md](testing.md).
+This page covers calling CommonMark.baml from BAML and running the `bamark` CLI. HTML mapping and `safe` mode are in [html.md](html.md). Resource limits are in [Limits](#limits). Compile checks and the spec suite are in [testing.md](testing.md).
 
 ## Requirements
 
@@ -112,6 +112,14 @@ baml run to_html -- --markdown '# Hi'
 
 `baml run` JSON-quotes the returned string. For raw HTML on stdout, use `bamark` below.
 
+## Limits
+
+`parse`, `render_html`, `to_html`, and `bamark` have no timeout, no max input size, and no nest-depth cap. Callers that accept untrusted Markdown must bound bytes and wall time themselves. `safe` does not do that: it only changes emitted HTML ([html.md](html.md)).
+
+Hot paths scan a materialized `chars()` array rather than indexing the string per character (`String.at(i)` is O(i) in this BAML runtime). CommonMark constructs that are expensive by design (many emphasis delimiters, unmatched `[`, large fenced or HTML blocks) are still valid and will be finished, not refused.
+
+Local scans have spec or engine caps: link labels longer than 1000 characters fail (CommonMark); unquoted destinations nested past 32 parentheses fail. Those do not bound whole-document time or memory.
+
 ## CLI (bamark)
 
 Pack the CLI from `baml_src/ns_cli/bamark.baml`:
@@ -149,3 +157,5 @@ printf '%s\n' '[x](javascript:alert(1))' | ./bamark --safe
 ### Performance
 
 Cold start of a packed binary is about one second, so a process-per-example spec harness is slow. `baml test` already covers all 652 spec examples; see [testing.md](testing.md).
+
+Parse and render cost scale with the input. The engine has no timeout or size cap; see [Limits](#limits).

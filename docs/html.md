@@ -2,7 +2,7 @@
 
 `render_html` walks a `Document` and writes CommonMark HTML. `to_html` parses then renders. Signatures, named defaults, and the `bamark --safe` flag are in [usage.md](usage.md). Behavior below is from `baml_src/ns_html/render.baml`. Nested lists, quotes, and emphasis are walked with `HtmlJob` / `InlineJob` stacks so rendering does not recurse in BAML call frames.
 
-`to_html` is not safe for untrusted Markdown by default. Pass `safe = true` (or `bamark --safe`) for the mitigations in [Safe mode](#safe-mode). That mode is still not a sanitizer.
+`to_html` is not safe for untrusted Markdown by default. Pass `safe = true` (or `bamark --safe`) for the mitigations in [Safe mode](#safe-mode). That mode is still not a sanitizer and does not cap parse cost ([Limits](usage.md#limits)).
 
 ## Output mapping
 
@@ -66,7 +66,7 @@ When `safe` is true:
 - Raw HTML is omitted: `HtmlBlock` becomes `<!-- raw HTML omitted -->\n`; `HtmlInline` becomes `<!-- raw HTML omitted -->`.
 - `href` and `src` are emptied when, after leading C0 controls, spaces, and tabs (code points `<= 0x20`), the remainder is a `javascript:`, `vbscript:`, `data:`, or `file:` URL. The scheme check is case-insensitive (`FILE:foo` is emptied). The empty value is still written as `href=""` / `src=""`.
 
-`http:`, `https:`, and relative URLs are not emptied. Attributes are not rewritten; raw HTML is dropped wholesale rather than filtered. `safe` does not bound CPU. Adversarial documents can still be expensive to parse and render.
+`http:`, `https:`, and relative URLs are not emptied. Attributes are not rewritten; raw HTML is dropped wholesale rather than filtered. `safe` only changes HTML. It does not cap parse or render cost; see [Limits](usage.md#limits).
 
 The default is `safe = false`, matching CommonMark: raw HTML and those URL schemes pass through.
 

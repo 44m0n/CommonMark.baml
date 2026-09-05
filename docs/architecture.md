@@ -2,7 +2,7 @@
 
 The engine is a two-phase CommonMark parse: a line-oriented block phase, then an inline phase over paragraph and heading source. Rule tables on `ParseOptions` (`block_starts`, `inline_rules`) drive both phases. `commonmark_options()` fills those tables for 0.31.2.
 
-Call `parse` / `to_html` as in [usage.md](usage.md). Dialects append starts and rules; see [extensions.md](extensions.md). Node shapes are in [ast.md](ast.md). HTML emission is in [html.md](html.md). Spec coverage is in [coverage.md](coverage.md) and [testing.md](testing.md).
+Call `parse` / `to_html` as in [usage.md](usage.md). Dialects append starts and rules; see [extensions.md](extensions.md). Node shapes are in [ast.md](ast.md). HTML emission is in [html.md](html.md). Resource limits (no timeout, no max size) are in [usage.md](usage.md#limits). Spec coverage is in [coverage.md](coverage.md) and [testing.md](testing.md).
 
 ## Phase 1 — blocks (`ns_block`)
 
@@ -14,6 +14,8 @@ Call `parse` / `to_html` as in [usage.md](usage.md). Dialects append starts and 
 4. Phase 2 (`parse_inlines_tree`)
 
 Tab columns use stop 4. `advance_offset` can consume only part of a tab and expand the remainder to spaces when appending a line.
+
+Each line is a `LineScan`: the line string plus a materialized `chars()` array. Block and inline scanners index that array. In this BAML runtime `String.at(i)` is O(i), so a per-character walk of the string was quadratic on long lines.
 
 `incorporate_line` (non-blank):
 
@@ -76,7 +78,7 @@ BAML namespaces are `ns_*` directories under `baml_src/`. No imports: files in t
 | --- | --- | --- |
 | `baml_src/main.baml` | `root` | `parse`, `render_html`, `to_html` |
 | `ns_ast/` | `root.ast` | `Document`, `Block`, `Inline`, … |
-| `ns_scan/` | `root.scan` | `preprocess`, `LineScan`, tab stop 4 |
+| `ns_scan/` | `root.scan` | `preprocess`, `LineScan` (`chars()` array), tab stop 4 |
 | `ns_block/` | `root.block` | phase 1, `ParseOptions`, `BlockStart` |
 | `ns_inline/` | `root.inline` | phase 2, `InlineParseRule` |
 | `ns_html/` | `root.html` | HTML renderer |
@@ -114,11 +116,11 @@ That is a fork, not a plugin.
 
 ## HTML renderer
 
-`ns_html/render.baml` is iterative: `HtmlJob` stacks for block sequences, list items, and tight-item children; `InlineJob` stacks for `Emph` / `Strong` / `Link` children. Nested lists, quotes, and emphasis do not recurse in BAML call frames.
+`ns_html/render.baml` is iterative: `HtmlJob` stacks for block sequences, list items, and tight-item children; `InlineJob` stacks for `Emph` / `Strong` / `Link` children. Nested lists, quotes, and emphasis do not recurse in BAML call frames. `escape_html` / `escape_href` also walk `chars()` arrays.
 
 ## See also
 
-- [usage.md](usage.md) — `parse`, `to_html`, `safe`
+- [usage.md](usage.md) — `parse`, `to_html`, `safe`, [limits](usage.md#limits)
 - [extensions.md](extensions.md) — `BlockStart`, `InlineParseRule`
 - [ast.md](ast.md) — node types
 - [html.md](html.md) — renderer and escaping
