@@ -1,5 +1,6 @@
 [package]
 name = "CommonMark.baml"
+# Tested with BAML toolchain 0.18.0 (canary): `baml toolchain use 0.18.0`
 
 # [scripts]
 # dev = "-f main"

@@ -1,0 +1,22 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  baml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install BAML
+        run: |
+          curl -fsSL https://baml.dev/install.sh | bash
+          echo "$HOME/.baml/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Select toolchain 0.18.0
+        run: baml toolchain use 0.18.0
+      - name: Check
+        run: baml check
+      - name: Test
+        run: baml test

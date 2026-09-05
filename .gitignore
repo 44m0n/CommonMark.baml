@@ -1,4 +1,5 @@
 .*
+!.github/
+!.github/**
 bamark
 __pycache__/
-
