@@ -39,16 +39,18 @@ function first_special_index(s: string) -> int {
 
 function consume_plain_text(s: Subject, extra: string) -> void {
     let line = s.scan.line;
+    let chars = s.scan.chars;
+    let extra_chars = extra.chars();
     let start = s.scan.pos;
-    let n = line.length();
+    let n = chars.length();
     let i = start;
     let probe = start + 64;
     if (probe > n) {
         probe = n;
     }
     while (i < probe) {
-        let c = line.at(i) ?? "";
-        if (is_inline_special(c) || (extra.length() > 0 && extra.includes(c))) {
+        let c = chars.at(i) ?? "";
+        if (is_inline_special(c) || (extra_chars.length() > 0 && extra_chars.includes(c))) {
             break;
         }
         i += 1;
@@ -56,14 +58,14 @@ function consume_plain_text(s: Subject, extra: string) -> void {
     if (
         i < n
             && i == probe
-            && !is_inline_special(line.at(i) ?? "")
-            && !(extra.length() > 0 && extra.includes(line.at(i) ?? ""))
+            && !is_inline_special(chars.at(i) ?? "")
+            && !(extra_chars.length() > 0 && extra_chars.includes(chars.at(i) ?? ""))
     ) {
         let rest = line.slice(i, n);
         let skip = first_special_index(rest);
         let j = 0;
-        while (j < extra.length()) {
-            skip = consider_index(rest.index_of(extra.at(j) ?? ""), skip);
+        while (j < extra_chars.length()) {
+            skip = consider_index(rest.index_of(extra_chars.at(j) ?? ""), skip);
             j += 1;
         }
         i += skip;
@@ -127,8 +129,9 @@ class PercentSpanRule {
             let _ = bump(s);
             let i = pos(s);
             let line = s.scan.line;
-            while (i < line.length()) {
-                if (line.at(i) == "%") {
+            let chars = s.scan.chars;
+            while (i < chars.length()) {
+                if (chars.at(i) == "%") {
                     let inner = line.slice(pos(s), i);
                     advance_to(s, i + 1);
                     push_node(s, root.ast.HtmlInline { literal: "<span>" });

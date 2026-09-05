@@ -3,11 +3,33 @@ class EntityScan {
     value: string,
 }
 
+class NamedEntityCache {
+    table: map<string, string>?,
+}
+
+// BAML has no module-level let; a client binding is a process-wide singleton.
+client NAMED_ENTITY_CACHE = NamedEntityCache { table: null };
+
+function named_entity_cache() -> NamedEntityCache {
+    if let cache: NamedEntityCache = NAMED_ENTITY_CACHE {
+        cache
+    } else {
+        baml.sys.panic("named entity cache is not an instance")
+    }
+}
+
 function load_named_entities() -> map<string, string> {
-    baml.json.from_string<map<string, string>>(named_entities_json()) catch_all (e) {
-        _ => {
-            baml.sys.panic("named entity table is corrupt")
-        }
+    let cache = named_entity_cache();
+    if let t: map<string, string> = cache.table {
+        t
+    } else {
+        let parsed = baml.json.from_string<map<string, string>>(named_entities_json()) catch_all (e) {
+            _ => {
+                baml.sys.panic("named entity table is corrupt")
+            }
+        };
+        cache.table = parsed;
+        parsed
     }
 }
 
@@ -40,20 +62,25 @@ function code_point_string(n: int) -> string {
     }
 }
 
-function scan_named_entity(line: string, i: int, table: map<string, string>) -> EntityScan? {
-    if (line.at(i) != "&") {
+function scan_named_entity(
+    line: string,
+    chars: string[],
+    i: int,
+    table: map<string, string>,
+) -> EntityScan? {
+    if (chars.at(i) != "&") {
         return null;
     }
     let j = i + 1;
-    while (j < line.length()) {
-        let c = line.at(j) ?? "";
+    while (j < chars.length()) {
+        let c = chars.at(j) ?? "";
         if (c.is_ascii_alphanumeric()) {
             j += 1;
         } else {
             break;
         }
     }
-    if (j == i + 1 || line.at(j) != ";") {
+    if (j == i + 1 || chars.at(j) != ";") {
         return null;
     }
     let name = line.slice(i + 1, j);
@@ -65,15 +92,15 @@ function scan_named_entity(line: string, i: int, table: map<string, string>) -> 
     }
 }
 
-function scan_decimal_entity(line: string, i: int) -> EntityScan? {
-    if (line.at(i) != "&" || line.at(i + 1) != "#") {
+function scan_decimal_entity(chars: string[], i: int) -> EntityScan? {
+    if (chars.at(i) != "&" || chars.at(i + 1) != "#") {
         return null;
     }
     let j = i + 2;
     let digits = 0;
     let n = 0;
     while (digits < 7) {
-        let c = line.at(j);
+        let c = chars.at(j);
         if (c == null) {
             break;
         }
@@ -84,17 +111,17 @@ function scan_decimal_entity(line: string, i: int) -> EntityScan? {
         j += 1;
         digits += 1;
     }
-    if (digits < 1 || line.at(j) != ";") {
+    if (digits < 1 || chars.at(j) != ";") {
         return null;
     }
     EntityScan { end: j + 1, value: code_point_string(n) }
 }
 
-function scan_hex_entity(line: string, i: int) -> EntityScan? {
-    if (line.at(i) != "&" || line.at(i + 1) != "#") {
+function scan_hex_entity(chars: string[], i: int) -> EntityScan? {
+    if (chars.at(i) != "&" || chars.at(i + 1) != "#") {
         return null;
     }
-    let x = line.at(i + 2);
+    let x = chars.at(i + 2);
     if (x != "x" && x != "X") {
         return null;
     }
@@ -102,7 +129,7 @@ function scan_hex_entity(line: string, i: int) -> EntityScan? {
     let digits = 0;
     let n = 0;
     while (digits < 6) {
-        let c = line.at(j);
+        let c = chars.at(j);
         if (c == null) {
             break;
         }
@@ -114,22 +141,31 @@ function scan_hex_entity(line: string, i: int) -> EntityScan? {
         j += 1;
         digits += 1;
     }
-    if (digits < 1 || line.at(j) != ";") {
+    if (digits < 1 || chars.at(j) != ";") {
         return null;
     }
     EntityScan { end: j + 1, value: code_point_string(n) }
 }
 
 function scan_entity(line: string, i: int, table: map<string, string>) -> EntityScan? {
-    let named = scan_named_entity(line, i, table);
+    scan_entity_chars(line, line.chars(), i, table)
+}
+
+function scan_entity_chars(
+    line: string,
+    chars: string[],
+    i: int,
+    table: map<string, string>,
+) -> EntityScan? {
+    let named = scan_named_entity(line, chars, i, table);
     if (named != null) {
         return named;
     }
-    let hex = scan_hex_entity(line, i);
+    let hex = scan_hex_entity(chars, i);
     if (hex != null) {
         return hex;
     }
-    scan_decimal_entity(line, i)
+    scan_decimal_entity(chars, i)
 }
 
 function unescape_markdown(s: string, table: map<string, string>) -> string {
@@ -137,14 +173,15 @@ function unescape_markdown(s: string, table: map<string, string>) -> string {
         return s;
     }
     let parts: string[] = [];
+    let chars = s.chars();
     let i = 0;
-    while (i < s.length()) {
-        let c = s.at(i) ?? "";
-        if (c == "\\" && root.block.is_escapable(s.at(i + 1))) {
-            parts.push(s.at(i + 1) ?? "");
+    while (i < chars.length()) {
+        let c = chars.at(i) ?? "";
+        if (c == "\\" && root.block.is_escapable(chars.at(i + 1))) {
+            parts.push(chars.at(i + 1) ?? "");
             i += 2;
         } else if (c == "&") {
-            let ent = scan_entity(s, i, table);
+            let ent = scan_entity_chars(s, chars, i, table);
             if let e: EntityScan = ent {
                 parts.push(e.value);
                 i = e.end;
@@ -155,8 +192,8 @@ function unescape_markdown(s: string, table: map<string, string>) -> string {
         } else {
             let start = i;
             i += 1;
-            while (i < s.length()) {
-                let n = s.at(i) ?? "";
+            while (i < chars.length()) {
+                let n = chars.at(i) ?? "";
                 if (n == "\\" || n == "&") {
                     break;
                 }
@@ -178,7 +215,7 @@ class EntityRule {
             if (peek(s) != "&") {
                 return false;
             }
-            let ent = scan_entity(s.scan.line, s.scan.pos, s.entities);
+            let ent = scan_entity_chars(s.scan.line, s.scan.chars, s.scan.pos, s.entities);
             if let e: EntityScan = ent {
                 advance_to(s, e.end);
                 push_text(s, e.value);
@@ -191,6 +228,14 @@ class EntityRule {
 
 test "named entity table includes copy" {
     assert.equal(load_named_entities().get("copy"), "©")
+}
+
+test "load_named_entities returns the same copy entity twice" {
+    let first = load_named_entities();
+    let second = load_named_entities();
+    assert.equal(first.get("copy"), "©");
+    assert.equal(second.get("copy"), first.get("copy"));
+    assert.equal(named_entity_cache().table?.get("copy"), "©")
 }
 
 test "named copy entity renders as copyright sign" {

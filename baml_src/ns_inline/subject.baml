@@ -16,6 +16,7 @@ class Subject {
     brackets: Bracket[],
     entities: map<string, string>,
     last_protected: bool,
+    text_parts: string[],
 }
 
 function subject(raw: string) -> Subject {
@@ -30,6 +31,7 @@ function subject(raw: string) -> Subject {
         brackets: [],
         entities: {},
         last_protected: false,
+        text_parts: [],
     }
 }
 
@@ -42,7 +44,7 @@ function peek(s: Subject) -> string? {
 }
 
 function peek_at(s: Subject, offset: int) -> string? {
-    s.scan.line.at(s.scan.pos + offset)
+    s.scan.chars.at(s.scan.pos + offset)
 }
 
 function bump(s: Subject) -> string? {
@@ -72,6 +74,7 @@ function dummy_cell() -> InlineCell {
 }
 
 function flatten_inlines(s: Subject) -> root.ast.Inline[] {
+    flush_text(s);
     let out: root.ast.Inline[] = [];
     let c = s.head;
     while (true) {
@@ -164,10 +167,23 @@ function take_after(s: Subject, cell: InlineCell) -> root.ast.Inline[] {
 }
 
 function push_node(s: Subject, node: root.ast.Inline) -> void {
+    flush_text(s);
     let _ = append_cell(s, node);
 }
 
 function push_text(s: Subject, t: string) -> void {
+    if (t.length() == 0) {
+        return;
+    }
+    s.text_parts.push(t);
+}
+
+function flush_text(s: Subject) -> void {
+    if (s.text_parts.length() == 0) {
+        return;
+    }
+    let t = s.text_parts.join("");
+    s.text_parts.clear();
     if (t.length() == 0) {
         return;
     }

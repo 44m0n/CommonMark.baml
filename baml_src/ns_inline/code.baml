@@ -14,12 +14,13 @@ class CodeSpanRule {
                 n += 1;
             }
             let line = s.scan.line;
+            let chars = s.scan.chars;
             let i = s.scan.pos;
             let found = -1;
-            while (i < line.length()) {
-                if (line.at(i) == "`") {
+            while (i < chars.length()) {
+                if (chars.at(i) == "`") {
                     let j = i;
-                    while (line.at(j) == "`") {
+                    while (chars.at(j) == "`") {
                         j += 1;
                     }
                     if (j - i == n) {
@@ -44,9 +45,10 @@ class CodeSpanRule {
 }
 
 function code_span_has_non_space(s: string) -> bool {
+    let chars = s.chars();
     let i = 0;
-    while (i < s.length()) {
-        if (s.at(i) != " ") {
+    while (i < chars.length()) {
+        if (chars.at(i) != " ") {
             return true;
         }
         i += 1;

@@ -6,12 +6,12 @@ function is_uri_scheme_cont(c: string?) -> bool {
     }
 }
 
-function scan_uri_autolink(line: string, start: int) -> int? {
-    if (line.at(start) != "<") {
+function scan_uri_autolink(chars: string[], start: int) -> int? {
+    if (chars.at(start) != "<") {
         return null;
     }
     let i = start + 1;
-    let first = line.at(i);
+    let first = chars.at(i);
     if (first == null) {
         return null;
     }
@@ -20,16 +20,16 @@ function scan_uri_autolink(line: string, start: int) -> int? {
     }
     i += 1;
     let extra = 0;
-    while (extra < 31 && is_uri_scheme_cont(line.at(i))) {
+    while (extra < 31 && is_uri_scheme_cont(chars.at(i))) {
         i += 1;
         extra += 1;
     }
-    if (extra < 1 || line.at(i) != ":") {
+    if (extra < 1 || chars.at(i) != ":") {
         return null;
     }
     i += 1;
-    while (i < line.length()) {
-        let c = line.at(i) ?? "";
+    while (i < chars.length()) {
+        let c = chars.at(i) ?? "";
         if (c == ">") {
             return i + 1;
         }
@@ -50,8 +50,8 @@ function is_email_local_char(c: string?) -> bool {
     }
 }
 
-function scan_email_label(line: string, i: int) -> int? {
-    let c0 = line.at(i);
+function scan_email_label(chars: string[], i: int) -> int? {
+    let c0 = chars.at(i);
     if (c0 == null) {
         return null;
     }
@@ -60,7 +60,7 @@ function scan_email_label(line: string, i: int) -> int? {
     }
     let j = i + 1;
     while (j - i < 63) {
-        let c = line.at(j);
+        let c = chars.at(j);
         if (c == null) {
             break;
         }
@@ -70,38 +70,38 @@ function scan_email_label(line: string, i: int) -> int? {
             break;
         }
     }
-    if (j - i > 1 && line.at(j - 1) == "-") {
+    if (j - i > 1 && chars.at(j - 1) == "-") {
         return null;
     }
     j
 }
 
-function scan_email_autolink(line: string, start: int) -> int? {
-    if (line.at(start) != "<") {
+function scan_email_autolink(chars: string[], start: int) -> int? {
+    if (chars.at(start) != "<") {
         return null;
     }
     let i = start + 1;
     let local_start = i;
-    while (is_email_local_char(line.at(i))) {
+    while (is_email_local_char(chars.at(i))) {
         i += 1;
     }
-    if (i == local_start || line.at(i) != "@") {
+    if (i == local_start || chars.at(i) != "@") {
         return null;
     }
     i += 1;
-    let label = scan_email_label(line, i);
+    let label = scan_email_label(chars, i);
     if (label == null) {
         return null;
     }
     i = label;
-    while (line.at(i) == ".") {
-        let next = scan_email_label(line, i + 1);
+    while (chars.at(i) == ".") {
+        let next = scan_email_label(chars, i + 1);
         if (next == null) {
             return null;
         }
         i = next;
     }
-    if (line.at(i) != ">") {
+    if (chars.at(i) != ">") {
         return null;
     }
     i + 1
@@ -118,15 +118,16 @@ class AutolinkRule {
                 return false;
             }
             let line = s.scan.line;
+            let chars = s.scan.chars;
             let start = s.scan.pos;
-            let uri_end = scan_uri_autolink(line, start);
+            let uri_end = scan_uri_autolink(chars, start);
             if (uri_end != null) {
                 let dest = line.slice(start + 1, uri_end - 1);
                 advance_to(s, uri_end);
                 push_node(s, root.ast.Autolink { destination: dest, email: false });
                 return true;
             }
-            let email_end = scan_email_autolink(line, start);
+            let email_end = scan_email_autolink(chars, start);
             if (email_end != null) {
                 let dest = line.slice(start + 1, email_end - 1);
                 advance_to(s, email_end);

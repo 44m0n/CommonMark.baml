@@ -11,7 +11,7 @@ function whitespace_before(s: Subject) -> bool {
     if (p == 0) {
         false
     } else {
-        let c = s.scan.line.at(p - 1) ?? "";
+        let c = s.scan.chars.at(p - 1) ?? "";
         c == " " || c == "\t" || c == "\n"
     }
 }

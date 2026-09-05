@@ -31,6 +31,7 @@ function run_inline_parse(s: Subject, rules: InlineParseRule[]) -> void {
         }
     }
     let _ = trim_trailing_spaces(s);
+    flush_text(s);
     process_emphasis(s, 0);
 }
 

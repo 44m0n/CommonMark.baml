@@ -7,34 +7,34 @@ function index_from(line: string, needle: string, from: int) -> int? {
     }
 }
 
-function skip_tag_ws(line: string, i: int) -> int {
-    while (line.at(i) == " " || line.at(i) == "\t") {
+function skip_tag_ws(chars: string[], i: int) -> int {
+    while (chars.at(i) == " " || chars.at(i) == "\t") {
         i += 1;
     }
-    if (line.at(i) == "\n") {
+    if (chars.at(i) == "\n") {
         i += 1;
-        while (line.at(i) == " " || line.at(i) == "\t") {
+        while (chars.at(i) == " " || chars.at(i) == "\t") {
             i += 1;
         }
     }
     i
 }
 
-function scan_tag_name(line: string, i: int) -> int? {
-    if (!root.block.is_ascii_letter_char(line.at(i))) {
+function scan_tag_name(chars: string[], i: int) -> int? {
+    if (!root.block.is_ascii_letter_char(chars.at(i))) {
         return null;
     }
     i += 1;
-    while (root.block.is_tag_name_char(line.at(i))) {
+    while (root.block.is_tag_name_char(chars.at(i))) {
         i += 1;
     }
     i
 }
 
-function scan_unquoted_attr_value(line: string, i: int) -> int? {
+function scan_unquoted_attr_value(chars: string[], i: int) -> int? {
     let start = i;
-    while (i < line.length()) {
-        let c = line.at(i) ?? "";
+    while (i < chars.length()) {
+        let c = chars.at(i) ?? "";
         let code = c.code_point_at(0) ?? 0;
         if (
             c == "\""
@@ -59,13 +59,13 @@ function scan_unquoted_attr_value(line: string, i: int) -> int? {
     }
 }
 
-function scan_quoted_attr_value(line: string, i: int, quote: string) -> int? {
-    if (line.at(i) != quote) {
+function scan_quoted_attr_value(chars: string[], i: int, quote: string) -> int? {
+    if (chars.at(i) != quote) {
         return null;
     }
     i += 1;
-    while (i < line.length()) {
-        if (line.at(i) == quote) {
+    while (i < chars.length()) {
+        if (chars.at(i) == quote) {
             return i + 1;
         }
         i += 1;
@@ -73,31 +73,31 @@ function scan_quoted_attr_value(line: string, i: int, quote: string) -> int? {
     null
 }
 
-function scan_attr_value(line: string, i: int) -> int? {
-    let q = line.at(i);
+function scan_attr_value(chars: string[], i: int) -> int? {
+    let q = chars.at(i);
     if (q == "\"" || q == "'") {
-        scan_quoted_attr_value(line, i, q ?? "\"")
+        scan_quoted_attr_value(chars, i, q ?? "\"")
     } else {
-        scan_unquoted_attr_value(line, i)
+        scan_unquoted_attr_value(chars, i)
     }
 }
 
-function scan_attribute(line: string, i: int) -> int? {
-    let j = skip_tag_ws(line, i);
+function scan_attribute(chars: string[], i: int) -> int? {
+    let j = skip_tag_ws(chars, i);
     if (j == i) {
         return null;
     }
-    if (!root.block.is_attr_name_start(line.at(j))) {
+    if (!root.block.is_attr_name_start(chars.at(j))) {
         return null;
     }
     j += 1;
-    while (root.block.is_attr_name_char(line.at(j))) {
+    while (root.block.is_attr_name_char(chars.at(j))) {
         j += 1;
     }
-    let k = skip_tag_ws(line, j);
-    if (line.at(k) == "=") {
-        k = skip_tag_ws(line, k + 1);
-        let v = scan_attr_value(line, k);
+    let k = skip_tag_ws(chars, j);
+    if (chars.at(k) == "=") {
+        k = skip_tag_ws(chars, k + 1);
+        let v = scan_attr_value(chars, k);
         if (v == null) {
             return null;
         }
@@ -107,43 +107,43 @@ function scan_attribute(line: string, i: int) -> int? {
     }
 }
 
-function scan_open_tag(line: string, start: int) -> int? {
-    if (line.at(start) != "<") {
+function scan_open_tag(chars: string[], start: int) -> int? {
+    if (chars.at(start) != "<") {
         return null;
     }
-    let name_end = scan_tag_name(line, start + 1);
+    let name_end = scan_tag_name(chars, start + 1);
     if (name_end == null) {
         return null;
     }
     let j = name_end;
     while (true) {
-        let next = scan_attribute(line, j);
+        let next = scan_attribute(chars, j);
         if (next == null) {
             break;
         }
         j = next;
     }
-    j = skip_tag_ws(line, j);
-    if (line.at(j) == "/") {
+    j = skip_tag_ws(chars, j);
+    if (chars.at(j) == "/") {
         j += 1;
     }
-    if (line.at(j) == ">") {
+    if (chars.at(j) == ">") {
         j + 1
     } else {
         null
     }
 }
 
-function scan_close_tag(line: string, start: int) -> int? {
-    if (line.at(start) != "<" || line.at(start + 1) != "/") {
+function scan_close_tag(chars: string[], start: int) -> int? {
+    if (chars.at(start) != "<" || chars.at(start + 1) != "/") {
         return null;
     }
-    let name_end = scan_tag_name(line, start + 2);
+    let name_end = scan_tag_name(chars, start + 2);
     if (name_end == null) {
         return null;
     }
-    let j = skip_tag_ws(line, name_end);
-    if (line.at(j) == ">") {
+    let j = skip_tag_ws(chars, name_end);
+    if (chars.at(j) == ">") {
         j + 1
     } else {
         null
@@ -168,8 +168,8 @@ function scan_html_comment(line: string, start: int) -> int? {
     }
 }
 
-function scan_processing_instruction(line: string, start: int) -> int? {
-    if (line.at(start) != "<" || line.at(start + 1) != "?") {
+function scan_processing_instruction(line: string, chars: string[], start: int) -> int? {
+    if (chars.at(start) != "<" || chars.at(start + 1) != "?") {
         return null;
     }
     let i = index_from(line, "?>", start + 2);
@@ -180,16 +180,16 @@ function scan_processing_instruction(line: string, start: int) -> int? {
     }
 }
 
-function scan_declaration(line: string, start: int) -> int? {
-    if (line.at(start) != "<" || line.at(start + 1) != "!") {
+function scan_declaration(chars: string[], start: int) -> int? {
+    if (chars.at(start) != "<" || chars.at(start + 1) != "!") {
         return null;
     }
-    if (!root.block.is_ascii_letter_char(line.at(start + 2))) {
+    if (!root.block.is_ascii_letter_char(chars.at(start + 2))) {
         return null;
     }
     let i = start + 3;
-    while (i < line.length()) {
-        if (line.at(i) == ">") {
+    while (i < chars.length()) {
+        if (chars.at(i) == ">") {
             return i + 1;
         }
         i += 1;
@@ -209,12 +209,12 @@ function scan_cdata(line: string, start: int) -> int? {
     }
 }
 
-function scan_html_inline(line: string, start: int) -> int? {
+function scan_html_inline(line: string, chars: string[], start: int) -> int? {
     let end = scan_html_comment(line, start);
     if (end != null) {
         return end;
     }
-    end = scan_processing_instruction(line, start);
+    end = scan_processing_instruction(line, chars, start);
     if (end != null) {
         return end;
     }
@@ -222,15 +222,15 @@ function scan_html_inline(line: string, start: int) -> int? {
     if (end != null) {
         return end;
     }
-    end = scan_declaration(line, start);
+    end = scan_declaration(chars, start);
     if (end != null) {
         return end;
     }
-    end = scan_open_tag(line, start);
+    end = scan_open_tag(chars, start);
     if (end != null) {
         return end;
     }
-    scan_close_tag(line, start)
+    scan_close_tag(chars, start)
 }
 
 class HtmlInlineRule {
@@ -243,7 +243,7 @@ class HtmlInlineRule {
             if (peek(s) != "<") {
                 return false;
             }
-            let end = scan_html_inline(s.scan.line, s.scan.pos);
+            let end = scan_html_inline(s.scan.line, s.scan.chars, s.scan.pos);
             if (end == null) {
                 return false;
             }

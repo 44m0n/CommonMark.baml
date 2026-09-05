@@ -11,11 +11,11 @@ function is_unicode_punct(ch: string) -> bool {
     }
 }
 
-function flanking_char(line: string, i: int) -> string {
-    if (i < 0 || i >= line.length()) {
+function flanking_char(chars: string[], i: int) -> string {
+    if (i < 0 || i >= chars.length()) {
         "\n"
     } else {
-        line.at(i) ?? "\n"
+        chars.at(i) ?? "\n"
     }
 }
 
@@ -33,8 +33,8 @@ function scan_delims(s: Subject, marker: string) -> DelimScan {
         n += 1;
     }
     advance_to(s, start);
-    let before = flanking_char(s.scan.line, start - 1);
-    let after = flanking_char(s.scan.line, start + n);
+    let before = flanking_char(s.scan.chars, start - 1);
+    let after = flanking_char(s.scan.chars, start + n);
     let after_ws = root.scan.is_unicode_whitespace(after);
     let before_ws = root.scan.is_unicode_whitespace(before);
     let after_punct = is_unicode_punct(after);
@@ -128,6 +128,7 @@ function insert_emph(s: Subject, opener: Delimiter, closer: Delimiter) -> Delimi
 }
 
 function process_emphasis(s: Subject, stack_bottom: int) -> void {
+    flush_text(s);
     let openers_bottom: int[] = [];
     let i = 0;
     while (i < 12) {
