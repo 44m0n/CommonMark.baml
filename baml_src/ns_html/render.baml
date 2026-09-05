@@ -86,12 +86,6 @@ function render_document(document: root.ast.Document, safe: bool = false) -> str
     render_html_jobs(html_seq(document.children, ""), safe)
 }
 
-function render_block(block: root.ast.Block, safe: bool = false) -> string {
-    let blocks: root.ast.Block[] = [];
-    blocks.push(block);
-    render_html_jobs(html_seq(blocks, ""), safe)
-}
-
 function push_block_work(out: string[], jobs: HtmlJob[], b: root.ast.Block, safe: bool) -> void {
     match (b) {
         let p: root.ast.Paragraph => {
@@ -181,18 +175,11 @@ function render_html_jobs(start: HtmlJob, safe: bool) -> string {
     out.join("")
 }
 
-function render_paragraph(p: root.ast.Paragraph, safe: bool = false) -> string {
-    `<p>${render_inlines(p.children, safe = safe)}</p>\n`
-}
-
-function render_heading(h: root.ast.Heading, safe: bool = false) -> string {
-    `<h${h.level}>${render_inlines(h.children, safe = safe)}</h${h.level}>\n`
-}
-
 function first_info_word(info: string) -> string {
+    let chars = info.chars();
     let i = 0;
-    while (i < info.length()) {
-        let c = info.at(i) ?? "";
+    while (i < chars.length()) {
+        let c = chars[i];
         if (c == " " || c == "\t") {
             break;
         }
@@ -401,8 +388,9 @@ function escape_href(s: string) -> string {
 }
 
 function dangerous_url(url: string) -> bool {
+    let chars = url.chars();
     let i = 0;
-    while (i < url.length() && (url.at(i) == " " || url.at(i) == "\t")) {
+    while (i < chars.length() && (chars[i].code_point_at(0) ?? 0) <= 0x20) {
         i += 1;
     }
     let rest = url.slice(i, url.length()).to_lower_case();
@@ -453,19 +441,28 @@ test "deep nested images render" {
 }
 
 test "dangerous_url rejects file javascript vbscript data" {
+    let soh = string.from_code_points([0x01]) catch (e) {
+        baml.errors.InvalidArgument => ""
+    };
     assert.is_true(dangerous_url("file:///etc/passwd"));
     assert.is_true(dangerous_url("FILE:foo"));
     assert.is_true(dangerous_url(" javascript:alert(1)"));
     assert.is_true(dangerous_url("\tvbscript:x"));
     assert.is_true(dangerous_url("data:text/html,x"));
+    assert.is_true(dangerous_url(`${soh}javascript:alert(1)`));
+    assert.is_true(dangerous_url("\n\t javascript:x"));
     assert.equal(dangerous_url("http://example.com"), false);
     assert.equal(dangerous_url("/etc/passwd"), false)
 }
 
 test "safe_href empties file urls only when safe" {
+    let soh = string.from_code_points([0x01]) catch (e) {
+        baml.errors.InvalidArgument => ""
+    };
     assert.equal(safe_href("file:///etc/passwd", true), "");
     assert.equal(safe_href("FILE:foo", true), "");
     assert.equal(safe_href("javascript:alert(1)", true), "");
+    assert.equal(safe_href(`${soh}javascript:alert(1)`, true), "");
     assert.equal(safe_href("file:///etc/passwd", false), "file:///etc/passwd");
     assert.equal(safe_href("FILE:foo", false), "FILE:foo")
 }
