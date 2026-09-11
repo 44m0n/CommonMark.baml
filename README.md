@@ -1,54 +1,97 @@
 # CommonMark.baml
 
-A [CommonMark](https://spec.commonmark.org/0.31.2/) 0.31.2 parser in [BAML](https://docs.boundaryml.com): Markdown → typed AST → HTML. This tree does not implement GFM. Copyright 2026 Ramon C Horomnea. Licensed under the [Apache License 2.0](LICENSE); keep [NOTICE](NOTICE) with the code. Vendored spec fixtures are [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). HTML named character references are from WHATWG (see NOTICE).
+**CommonMark.baml** is a [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/) parser and HTML renderer written in [BAML](https://docs.boundaryml.com). Markdown goes in; a typed `Document` AST comes out; that tree can be walked or rendered as HTML. The engine is this repository (`baml_src/`), not a binding around cmark or another C library.
 
-Tested on BAML toolchain 0.18.0 (`baml toolchain use 0.18.0`). 652/652 CommonMark examples pass.
+This tree implements CommonMark only. It does not implement GitHub Flavored Markdown (tables, task lists, strikethrough, autolinks without `<>`, footnotes, and so on).
 
-## Features
+| | |
+| --- | --- |
+| Project version | **0.8** ([changelog](CHANGELOG.md); git tag, not `0.8.0`) |
+| Spec | CommonMark **0.31.2** (`bamark -V` prints this, not the project version) |
+| Conformance | **652/652** examples in `vendor/commonmark-0.31.2/` |
+| Toolchain | BAML **0.18.0** (`baml toolchain use 0.18.0`) |
+| License | [Apache 2.0](LICENSE) |
 
-- CommonMark 0.31.2 only (no GFM in this tree)
-- `parse` → typed `Document`; `render_html` / `to_html` → HTML
-- Optional `safe` mode: HTML/script mitigation, not a general sanitizer
-- Rule-table dialects via `ParseOptions.block_starts` and `ParseOptions.inline_rules`
-- Packed CLI `bamark` (file or stdin → raw HTML)
+## What this repository is
 
-## Quick start
+This is a BAML *project*: `baml.toml` at the root, sources under `baml_src/`, tests in those same files, and the CommonMark spec vendored under `vendor/`. There is no separate published npm or PyPI package named CommonMark.baml. You clone this tree and use the [BAML CLI](https://docs.boundaryml.com) against it.
+
+It ships two ways to run the engine:
+
+1. **Library** — `parse`, `render_html`, and `to_html` in the `root` namespace (`baml_src/main.baml`). Call them from BAML (`baml run`, `baml test`, or another file in this project).
+2. **CLI** — pack `bamark` (`baml_src/ns_cli/bamark.baml`) to a binary that reads Markdown from a file or stdin and writes raw HTML to stdout.
+
+`baml.toml` also declares Python and TypeScript generators. `baml generate` can emit typed `baml_sdk` packages under `generated/`; that output is not committed, and those packages need the matching language bridge for this toolchain. Day-to-day use of the repo is the BAML library and `bamark`.
+
+BAML has no package registry for this kind of library. To reuse the parser from another BAML project, vendor `baml_src/` (or the namespaces you need) into that project’s `baml_src/`. Files in `ns_<name>/` become namespace `<name>`; there are no imports.
+
+## What it is not
+
+- **Not GFM, MDX, or “Markdown plus extras.”** No tables, task lists, strikethrough, bare autolinks, footnotes, front matter, or smart punctuation.
+- **Not a sanitizer.** Default HTML matches CommonMark: raw HTML and `javascript:` URLs pass through. `safe` is HTML/script mitigation only; see [Safe mode](#safe-mode).
+- **Not resource-bounded.** There is no timeout, max input size, or nest-depth cap. Callers that accept untrusted Markdown must bound bytes and wall time themselves.
+- **Not a source map.** The AST has no line/column offsets.
+
+Details: [docs/coverage.md](docs/coverage.md).
+
+## Requirements
+
+Install the BAML CLI, then pin the toolchain this tree is tested on:
 
 ```bash
+# macOS
+brew install baml
+
+# or
+curl -fsSL https://baml.dev/install.sh | bash
+
 baml toolchain use 0.18.0
 ```
 
-Library (defaulted parameters must be passed by name):
+Confirm with `baml --version` / `baml toolchain list`. CI (`.github/workflows/test.yml`) installs the same way and runs `baml check` then `baml test` on 0.18.0.
+
+## Quick start
+
+From the repository root, after the toolchain pin:
 
 ```bash
 baml run -e 'to_html("# Hi\n")'
 ```
 
-```baml
-to_html("# Hi\n")
-let doc = parse("# Hi\n");
-render_html(doc)
-to_html("[x](javascript:alert(1))\n", safe = true)
-```
-
-`parse(md)` / `to_html(md)` use `commonmark_options()`. A later dialect would pass `options` by name: `parse(md, options = …)`.
-
-CLI:
+That evaluates an expression in the `root` namespace and prints a JSON-quoted string (`"<h1>Hi</h1>\n"`). For raw HTML on stdout, pack the CLI:
 
 ```bash
 baml pack cli.bamark --output ./bamark
 printf '%s\n' '# Hi' | ./bamark
-./bamark README.md
-printf '%s\n' '[x](javascript:alert(1))' | ./bamark --safe
+# <h1>Hi</h1>
 ```
 
-`bamark` reads Markdown from a file or stdin and writes raw HTML. Input must be UTF-8. `-` or an omitted file reads `/dev/stdin` (Unix, Git Bash, WSL). Native Windows cmd/PowerShell has no `/dev/stdin`; pass a path. `-h` / `--help` and `-V` / `--version` (`bamark 0.31.2` is the CommonMark spec this engine targets). `--safe` is the same as `to_html(..., safe = true)`.
+`baml run to_html -- --markdown '# Hi'` also works; it still JSON-quotes the result. Packed `bamark` cold-starts in about a second.
 
-`baml run to_html -- --markdown '# Hi'` is fine for debugging; it JSON-quotes the string. Cold start of a packed binary is about a second, so the process-per-example spec harness is slow; `baml test` already covers all 652 examples.
+## Library
 
-## Public API
+`parse`, `render_html`, and `to_html` live in `baml_src/main.baml` (namespace `root`). `to_html` is `render_html(parse(markdown, options = options), safe = safe)`.
 
-BAML cannot hide namespaces. The supported v1 surface is:
+Defaulted parameters must be passed **by name**. `parse(md)` and `to_html(md)` are valid; `parse(md, commonmark_options())` is not.
+
+```baml
+to_html("# Hi\n")
+// "<h1>Hi</h1>\n"
+
+let doc = parse("# Hi\n");
+render_html(doc)
+
+to_html("[x](javascript:alert(1))\n", safe = true)
+// "<p><a href=\"\">x</a></p>\n"
+```
+
+`parse(md)` / `to_html(md)` use `root.block.commonmark_options()`. A later dialect would pass a different `ParseOptions` by name: `parse(md, options = …)`. This tree does not define `gfm_options()`.
+
+Full signatures and AST walking: [docs/usage.md](docs/usage.md). Node fields: [docs/ast.md](docs/ast.md).
+
+### Public API
+
+BAML cannot hide namespaces, so internals are visible. The supported v1 surface is:
 
 ```baml
 function parse(markdown: string, options: ParseOptions = commonmark_options()) -> Document
@@ -56,66 +99,180 @@ function render_html(document: Document, safe: bool = false) -> string
 function to_html(markdown: string, options: ParseOptions = commonmark_options(), safe: bool = false) -> string
 ```
 
-plus the AST types in `ns_ast` (`Document`, `Block`, `Inline`, and their classes) and `ParseOptions` / `BlockStart` / `InlineParseRule` for dialects. Field-level AST notes are in [docs/ast.md](docs/ast.md).
+plus the AST types in `ns_ast` (`Document`, `Block`, `Inline`, and their classes) and `ParseOptions` / `BlockStart` / `InlineParseRule` / `commonmark_options` for dialects.
 
-`Parser`, `Open`, scanners, spec helpers, and other `ns_*` functions are unsupported internals: they may change without a major version.
+Everything else — `Parser`, `Open`, scanners, spec helpers, `bamark` argument parsing, and other `ns_*` functions — is unsupported and may change without a major version.
 
-After `parse()`, `Paragraph.raw` / `Heading.raw` are empty; `last_line_blank` is false on every node; `List.tight` is already computed. When building an AST for `render_html`, set `raw: ""` and `last_line_blank: false`.
+### Walking the AST
 
-## Limits
+`Document.children` is a `Block[]`. `Block` and `Inline` are unions. `ListItem` is not a `Block`; it lives on `List.children`. Walk with `match` or `if let`:
 
-`parse`, `render_html`, `to_html`, and `bamark` have no timeout, no max input size, and no nest-depth cap. Callers that accept untrusted Markdown must bound bytes and wall time themselves. `safe` does not do that. Details: [docs/usage.md](docs/usage.md#limits).
+```baml
+function first_heading_text(doc: root.ast.Document) -> string {
+    let h = doc.children.at(0);
+    if let heading: root.ast.Heading = h {
+        let n = heading.children.at(0);
+        if let t: root.ast.Text = n {
+            t.literal
+        } else {
+            ""
+        }
+    } else {
+        ""
+    }
+}
+```
+
+`Block` is `Paragraph | Heading | ThematicBreak | CodeBlock | HtmlBlock | BlockQuote | List`.
+
+`Inline` is `Text | SoftBreak | HardBreak | CodeSpan | Emph | Strong | Link | Image | HtmlInline | Autolink`.
+
+After `parse()` returns:
+
+- `Paragraph.raw` and `Heading.raw` are empty (phase 2 consumed the source).
+- `last_line_blank` is `false` on every node, including list items.
+- `List.tight` is already computed (and kept).
+
+If you build an AST yourself and pass it to `render_html`, set `raw: ""` and `last_line_blank: false`. Set `List.tight` if you care about tight vs loose item HTML.
+
+### HTML output
+
+The renderer emits CommonMark-style HTML: `<h1>…</h1>\n`, `<hr />\n`, `<br />\n`, tight list items without `<p>` wrappers, `class="language-{word}"` on fenced code when the info string has a first word. Text and attribute values escape `& < > "`. Link `href` / image `src` percent-encode as in [docs/html.md](docs/html.md).
+
+## CLI (`bamark`)
+
+```bash
+baml pack cli.bamark --output ./bamark
+```
+
+```
+Usage: bamark [options] [file]
+```
+
+- Markdown from `file`, or `/dev/stdin` if the file is omitted or is `-` (Unix, Git Bash, WSL). Native Windows cmd/PowerShell has no `/dev/stdin`; pass a path.
+- Stdout is **raw HTML**, not JSON.
+- Input must be UTF-8.
+- `--safe` — same as `to_html(..., safe = true)`.
+- `-h` / `--help` — usage, exit 0.
+- `-V` / `--version` — print `bamark 0.31.2` (spec version), exit 0.
+- `--` ends option parsing so a name like `-weird.md` is a file, not a flag.
+- Unknown flags and extra positionals exit 2. I/O errors (missing file) exit 1.
+
+```bash
+printf '%s\n' '# Hi' | ./bamark
+./bamark README.md
+printf '%s\n' '[x](javascript:alert(1))' | ./bamark --safe
+```
+
+Default matches CommonMark: raw HTML and `javascript:` URLs pass through unless `--safe` is set.
+
+## CommonMark coverage
+
+Preprocess: `\r\n` / `\r` → `\n`; NUL `U+0000` → `U+FFFD`. Tabs are not rewritten to spaces; column counting uses tab stop **4**.
+
+**Blocks:** ATX and setext headings, thematic breaks, block quotes, fenced and indented code, HTML blocks (types 1–7), bullet and ordered lists (tight/loose, nesting), link reference definitions, paragraphs, blank lines.
+
+**Inlines:** backslash escapes, named and numeric character references (WHATWG table, embedded so `bamark` works off the repo root), code spans, emphasis and strong, links and images, angle-bracket autolinks (URI and email), raw HTML, hard and soft line breaks.
+
+Link reference definitions are stored on `Document.refs` (normalized label → destination/title). They are not block nodes and are not rendered. Duplicate labels keep the first definition.
+
+Construct → AST → HTML map: [docs/coverage.md](docs/coverage.md).
+
+## How the engine works
+
+Two phases, both driven by tables on `ParseOptions`:
+
+1. **Blocks** (`ns_block`) — preprocess, then a line loop over an open-block stack. Each line tries to *continue* open containers, then *start* new blocks from `block_starts` in order, then treats the remainder as lazy paragraph continuation, leaf content, or a new paragraph.
+2. **Inlines** (`ns_inline`) — walk paragraphs and headings with an explicit stack (so nested lists/quotes do not recurse in BAML call frames). `inline_rules` consume special characters; everything else coalesces as `Text`. Emphasis and links use a delimiter stack so later reference definitions still resolve.
+
+`commonmark_options()` fills both tables for 0.31.2. HTML rendering (`ns_html`) is also iterative (`HtmlJob` / `InlineJob` stacks).
+
+Hot paths scan a materialized `chars()` array on each line. In this BAML runtime `String.at(i)` is O(i); walking the string per character was quadratic on long lines.
+
+A new *leaf* that reuses an existing AST node can be a plugin (`BlockStart` / `InlineParseRule`). A new block *kind* that continues across lines is a fork: `OpenKind`, `BlockOps`, the `Block` union, and the HTML `match` all have to change. In-tree examples: `PercentBreakStart` (`%%%` → `<hr />`) and `PercentSpanRule` (`%x%` → `<span>x</span>`).
+
+Walkthrough: [docs/architecture.md](docs/architecture.md). Writing a rule: [docs/extensions.md](docs/extensions.md).
 
 ## Safe mode
 
-`to_html` is not safe for untrusted Markdown by default: raw HTML and URL schemes such as `javascript:` pass through, matching CommonMark.
+`to_html` is not safe for untrusted Markdown by default.
 
-Pass `safe = true` to omit raw HTML as `<!-- raw HTML omitted -->` and to empty `href` / `src` values whose scheme is `javascript:`, `vbscript:`, `data:`, or `file:` (case-insensitive, after leading C0 controls, spaces, and tabs — code points `<= 0x20`). That is HTML/script mitigation, not a general sanitizer: `http:` / `https:` / relative URLs still pass; attributes are not rewritten.
+Pass `safe = true` (CLI: `bamark --safe`) to:
 
-`safe` only changes HTML. It does not cap parse or render cost; see [Limits](#limits).
+- Replace raw HTML (`HtmlBlock` / `HtmlInline`) with `<!-- raw HTML omitted -->` (`HtmlBlock` keeps a trailing newline; `HtmlInline` does not).
+- Empty `href` / `src` when, after leading C0 controls, spaces, and tabs (code points `<= 0x20`), the remainder is a `javascript:`, `vbscript:`, `data:`, or `file:` URL. The scheme check is case-insensitive (`FILE:foo` is emptied). The attribute is still written (`href=""` / `src=""`).
 
-Details: [docs/html.md](docs/html.md).
+`http:`, `https:`, and relative URLs still pass. Attributes are not rewritten. `safe` does not change the parse, does not filter HTML tag-by-tag, and does not cap parse or render cost.
 
-## Extensions
+## Limits
 
-The engine is rule-table driven. `ParseOptions.block_starts` and `ParseOptions.inline_rules` are the extension points; `commonmark_options()` fills both. Extra `BlockStart` implementors provide `triggers()`, `allow_indented()`, and `try_open()`. Extra `InlineParseRule` implementors provide `triggers()` so starter characters are not swallowed as plain text.
+`parse`, `render_html`, `to_html`, and `bamark` have no timeout, no max input size, and no nest-depth cap. `safe` does not add those.
 
-This tree ships CommonMark only. Details: [docs/extensions.md](docs/extensions.md).
+CommonMark constructs that are expensive by design (many emphasis delimiters, unmatched `[`, large fenced or HTML blocks) are valid and will be finished, not refused. Local scans have spec or engine caps — link labels longer than 1000 characters fail; unquoted destinations nested past 32 parentheses fail — but those do not bound whole-document time or memory.
+
+Callers that accept untrusted Markdown must bound bytes and wall time themselves. More: [docs/usage.md](docs/usage.md#limits).
 
 ## Tests
 
 ```bash
 baml toolchain use 0.18.0
-baml check
-baml test
-python3 vendor/commonmark-0.31.2/spec_tests.py --spec vendor/commonmark-0.31.2/spec.txt --program ./bamark
+baml check          # type-check
+baml test           # unit tests + all 652 spec examples
 ```
 
-Fixtures are CommonMark 0.31.2 (`vendor/commonmark-0.31.2/`). 652/652 examples. The Python harness needs a packed `./bamark`. More: [docs/testing.md](docs/testing.md).
+`baml test` is the day-to-day suite. Each CommonMark section is a test that calls `spec_failures(section)` (`baml_src/ns_spec/runner.baml`) and asserts an empty list of failing example numbers. The runner reads `vendor/commonmark-0.31.2/spec-tests.json` (length asserted to be 652). Spec comparison uses default `to_html` (`safe = false`).
 
-## Layout
+The upstream process-per-example harness still works against a packed binary. Cold start is ~1s per example, so it is slow; prefer `baml test`:
 
-- `baml_src/main.baml` — public functions
-- `ns_ast/` — document tree
-- `ns_scan/` — line cursor (tab stop 4, NUL → U+FFFD)
-- `ns_block/` — phase 1
-- `ns_inline/` — phase 2
-- `ns_html/` — HTML renderer
-- `ns_cli/` — `bamark`
-- `ns_spec/` — JSON spec runner
-- `docs/` — usage, coverage, AST, extensions, architecture
+```bash
+baml pack cli.bamark --output ./bamark
+python3 vendor/commonmark-0.31.2/spec_tests.py \
+  --spec vendor/commonmark-0.31.2/spec.txt \
+  --program ./bamark
+```
 
-Namespaces live under `baml_src/`. [docs/architecture.md](docs/architecture.md) walks the two-phase parse.
+GitHub Actions (`.github/workflows/test.yml`) runs `baml check` and `baml test` on every push and pull request. More: [docs/testing.md](docs/testing.md).
+
+## Repository layout
+
+```
+baml.toml                 BAML package + Python/TypeScript generators
+baml_src/main.baml        parse, render_html, to_html (namespace root)
+baml_src/ns_ast/          Document, Block, Inline, ListItem, LinkRef
+baml_src/ns_scan/         preprocess, LineScan (tab stop 4, chars() array)
+baml_src/ns_block/        phase 1: open stack, BlockStart table, each construct
+baml_src/ns_inline/       phase 2: Subject, InlineParseRule table, emphasis/links
+baml_src/ns_html/         HTML renderer (iterative) and escaping
+baml_src/ns_cli/          bamark
+baml_src/ns_spec/         JSON spec runner used by baml test
+docs/                     usage, AST, extensions, architecture, HTML, testing
+vendor/commonmark-0.31.2/ spec.txt, spec-tests.json, spec_tests.py
+vendor/html5-entities.json WHATWG named-character table (also embedded in-tree)
+.github/workflows/         baml check + baml test on 0.18.0
+CHANGELOG.md              tagged releases
+generated/                created by baml generate; not committed
+```
+
+Namespaces are `ns_*` directories under `baml_src/`. Files in the same folder share a scope. Cross-namespace names are `root.<ns>.<Name>` (for example `root.ast.Document`, `root.block.commonmark_options`).
+
+## Language bridges (optional)
+
+```bash
+baml generate
+```
+
+That writes `generated/python/baml_sdk` and `generated/typescript/baml_sdk` from the `[generator.python]` and `[generator.typescript]` blocks in `baml.toml`. Consumers install the matching runtime (`baml-bridge` / `@boundaryml/baml-bridge`) for this toolchain and import the generated package. The engine itself stays in BAML.
 
 ## Documentation
 
+- [CHANGELOG.md](CHANGELOG.md) — tagged releases (`0.8` and later)
 - [docs/README.md](docs/README.md) — documentation index
-- [docs/usage.md](docs/usage.md) — library, CLI, and limits
-- [docs/coverage.md](docs/coverage.md) — CommonMark 0.31.2 conformance
-- [docs/ast.md](docs/ast.md) — `Document` / `Block` / `Inline`
+- [docs/usage.md](docs/usage.md) — library, CLI, and [limits](docs/usage.md#limits)
+- [docs/coverage.md](docs/coverage.md) — CommonMark 0.31.2 construct map and out of scope
+- [docs/ast.md](docs/ast.md) — `Document` / `Block` / `Inline` fields
 - [docs/extensions.md](docs/extensions.md) — `ParseOptions`, `BlockStart`, `InlineParseRule`
-- [docs/architecture.md](docs/architecture.md) — two-phase engine and layout
-- [docs/html.md](docs/html.md) — renderer and `safe` mode
+- [docs/architecture.md](docs/architecture.md) — two-phase engine and `baml_src/` map
+- [docs/html.md](docs/html.md) — renderer, escaping, and `safe` mode
 - [docs/testing.md](docs/testing.md) — `baml test` and `spec_tests.py`
 
 ## License
@@ -124,4 +281,4 @@ Copyright 2026 Ramon C Horomnea.
 
 Licensed under the [Apache License 2.0](LICENSE). Keep [NOTICE](NOTICE) with the code.
 
-Vendored CommonMark specification and conformance fixtures (`vendor/commonmark-0.31.2/`) are [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). HTML named character references are from WHATWG; see NOTICE for the entity-data licenses.
+Vendored CommonMark specification and conformance fixtures (`vendor/commonmark-0.31.2/`) are [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). `spec_tests.py` is BSD-2-Clause. HTML named character references are from WHATWG; see NOTICE for the entity-data licenses.
