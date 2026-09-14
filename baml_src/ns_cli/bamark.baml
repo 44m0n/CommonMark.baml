@@ -166,7 +166,7 @@ test "parse_bamark_args end of options and windows path" {
 }
 
 test "parse_bamark_args skips baml run runner and target" {
-    let parsed = parse_bamark_args(["/home/coder/.baml/toolchains/0.18.0/bin/baml-cli", "cli.bamark", "--safe", "README.md"]);
+    let parsed = parse_bamark_args(["/home/coder/.baml/toolchains/0.19.0/bin/baml-cli", "cli.bamark", "--safe", "README.md"]);
     assert.equal(parsed.input, "README.md");
     assert.is_true(parsed.safe);
     assert.equal(parsed.error, null);

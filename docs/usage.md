@@ -4,10 +4,10 @@ This page covers calling CommonMark.baml from BAML and running the `bamark` CLI.
 
 ## Requirements
 
-Use BAML toolchain 0.18.0:
+Use BAML toolchain 0.19.0:
 
 ```bash
-baml toolchain use 0.18.0
+baml toolchain use 0.19.0
 ```
 
 The project is a BAML package: `baml.toml` at the repository root and sources under `baml_src/`.

@@ -1,6 +1,6 @@
 [package]
 name = "CommonMark.baml"
-# Tested with BAML toolchain 0.18.0 (canary): `baml toolchain use 0.18.0`
+# Tested with BAML toolchain 0.19.0 (canary): `baml toolchain use 0.19.0`
 
 # Language-bridge SDKs: `baml generate` writes `baml_sdk/` under each output_dir.
 # Consumers install the matching runtime (`baml-bridge` / `@boundaryml/baml-bridge`)

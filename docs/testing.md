@@ -5,7 +5,7 @@ How this repository checks the parser and HTML renderer against CommonMark 0.31.
 ## Toolchain
 
 ```bash
-baml toolchain use 0.18.0
+baml toolchain use 0.19.0
 ```
 
 Tests assume that toolchain.
