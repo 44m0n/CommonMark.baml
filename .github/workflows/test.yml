@@ -11,9 +11,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install BAML
         run: |
-          curl -fsSL https://baml.dev/install.sh | bash
+          set -o pipefail
+          curl -fsSL https://pkg.boundaryml.com/install.sh | sh -s
+          test -x "$HOME/.baml/bin/baml"
+          "$HOME/.baml/bin/baml" --version
           echo "$HOME/.baml/bin" >> "$GITHUB_PATH"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Select toolchain 0.19.1-nightly.20260911.a
         run: baml toolchain use 0.19.1-nightly.20260911.a
       - name: Check

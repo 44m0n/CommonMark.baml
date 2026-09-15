@@ -43,7 +43,7 @@ Install the BAML CLI, then pin the toolchain this tree is tested on:
 brew install baml
 
 # or
-curl -fsSL https://baml.dev/install.sh | bash
+curl -fsSL https://pkg.boundaryml.com/install.sh | sh -s
 
 baml toolchain use 0.19.1-nightly.20260911.a
 ```
