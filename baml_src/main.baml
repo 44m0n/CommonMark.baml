@@ -6,8 +6,12 @@ function parse(
     root.block.parse_document(markdown, options)
 }
 
-function render_html(document: root.ast.Document, safe: bool = false) -> string {
-    //# Render the document tree as HTML
+function render_html(
+    document: root.ast.Document,
+    safe: bool = false,
+) -> string throws baml.errors.InvalidArgument {
+    //# Validate then render the document tree as HTML
+    root.ast.validate_document(document);
     root.html.render_document(document, safe = safe)
 }
 
@@ -15,7 +19,7 @@ function to_html(
     markdown: string,
     options: root.block.ParseOptions = root.block.commonmark_options(),
     safe: bool = false,
-) -> string {
+) -> string throws baml.errors.InvalidArgument {
     //# Parse then render
     render_html(parse(markdown, options = options), safe = safe)
 }

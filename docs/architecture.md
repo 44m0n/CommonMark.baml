@@ -91,8 +91,8 @@ BAML cannot hide namespaces. The **supported** v1 surface is:
 
 ```baml
 function parse(markdown: string, options: ParseOptions = commonmark_options()) -> Document
-function render_html(document: Document, safe: bool = false) -> string
-function to_html(markdown: string, options: ParseOptions = commonmark_options(), safe: bool = false) -> string
+function render_html(document: Document, safe: bool = false) -> string throws baml.errors.InvalidArgument
+function to_html(markdown: string, options: ParseOptions = commonmark_options(), safe: bool = false) -> string throws baml.errors.InvalidArgument
 ```
 
 plus AST types in `root.ast`, and `ParseOptions` / `BlockStart` / `BlockStartContext` / `InlineParseRule` / `InlineParseContext` / `commonmark_options` for dialects.

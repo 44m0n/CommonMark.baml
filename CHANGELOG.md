@@ -22,6 +22,7 @@ without a major version.
 - Python and TypeScript client generators in `baml.toml`
   (`baml generate` writes `generated/python` and `generated/typescript`).
 - Stable `BlockStartContext` and `InlineParseContext` interfaces for dialect rules, replacing direct `Parser` and `Subject` parameters.
+- `root.ast.new_document`, `root.ast.new_heading`, and `root.ast.validate_document` for safely constructing and validating renderable ASTs.
 
 ### Changed
 

@@ -95,8 +95,8 @@ BAML cannot hide namespaces, so internals are visible. The supported v1 surface 
 
 ```baml
 function parse(markdown: string, options: ParseOptions = commonmark_options()) -> Document
-function render_html(document: Document, safe: bool = false) -> string
-function to_html(markdown: string, options: ParseOptions = commonmark_options(), safe: bool = false) -> string
+function render_html(document: Document, safe: bool = false) -> string throws baml.errors.InvalidArgument
+function to_html(markdown: string, options: ParseOptions = commonmark_options(), safe: bool = false) -> string throws baml.errors.InvalidArgument
 ```
 
 plus the AST types in `ns_ast` (`Document`, `Block`, `Inline`, and their classes) and `ParseOptions` / `BlockStart` / `BlockStartContext` / `InlineParseRule` / `InlineParseContext` / `commonmark_options` for dialects.
@@ -133,7 +133,7 @@ After `parse()` returns:
 - `last_line_blank` is `false` on every node, including list items.
 - `List.tight` is already computed (and kept).
 
-If you build an AST yourself and pass it to `render_html`, set `raw: ""` and `last_line_blank: false`. Set `List.tight` if you care about tight vs loose item HTML.
+If you build an AST yourself, prefer `root.ast.new_document(...)` and `root.ast.new_heading(...)`; they initialize parser-only fields and reject invalid heading levels. `render_html` also validates the full tree and throws `baml.errors.InvalidArgument` rather than generating invalid HTML. For manually built non-heading nodes, set `raw: ""` and `last_line_blank: false`; set `List.tight` if you care about tight vs loose item HTML.
 
 ### HTML output
 

@@ -35,13 +35,16 @@ function parse(
     options: root.block.ParseOptions = root.block.commonmark_options(),
 ) -> root.ast.Document
 
-function render_html(document: root.ast.Document, safe: bool = false) -> string
+function render_html(
+    document: root.ast.Document,
+    safe: bool = false,
+) -> string throws baml.errors.InvalidArgument
 
 function to_html(
     markdown: string,
     options: root.block.ParseOptions = root.block.commonmark_options(),
     safe: bool = false,
-) -> string
+) -> string throws baml.errors.InvalidArgument
 ```
 
 `to_html` is `render_html(parse(markdown, options = options), safe = safe)`.
@@ -98,11 +101,11 @@ After `parse()` returns:
 - `last_line_blank` is `false` on every node, including list items.
 - `List.tight` is already computed.
 
-If you construct an AST yourself and pass it to `render_html`, set `raw: ""` and `last_line_blank: false` on those fields. Set `List.tight` yourself if you care about tight vs loose item HTML ([html.md](html.md)).
+If you construct an AST yourself, prefer `root.ast.new_document(...)` and `root.ast.new_heading(...)`. They initialize parser-only fields and reject invalid heading levels. `render_html` validates the full tree and throws `baml.errors.InvalidArgument` rather than generating invalid HTML. For manually built non-heading nodes, set `raw: ""` and `last_line_blank: false`; set `List.tight` yourself if you care about tight vs loose item HTML ([html.md](html.md)).
 
 ### Unsupported surface
 
-`Parser`, `Open`, scanners, spec helpers, and other `ns_*` functions are unsupported internals. They may change without a major version. The supported v1 surface is `parse` / `render_html` / `to_html`, the AST types in `ns_ast`, and `ParseOptions` / `BlockStart` / `InlineParseRule` for dialects.
+`Parser`, `Open`, scanners, spec helpers, and other `ns_*` functions are unsupported internals. They may change without a major version. The supported v1 surface is `parse` / `render_html` / `to_html`, the AST types and construction/validation helpers in `ns_ast`, and `ParseOptions` / `BlockStart` / `BlockStartContext` / `InlineParseRule` / `InlineParseContext` for dialects.
 
 ### Debugging
 

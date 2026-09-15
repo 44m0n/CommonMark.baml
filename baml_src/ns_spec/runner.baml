@@ -34,7 +34,11 @@ function spec_example(
 
 function spec_failures(
     section: string,
-) -> int[] throws baml.errors.Io | baml.errors.ParseError | baml.json.ParseError | baml.json.DecodeError {
+) -> int[] throws baml.errors.Io
+    | baml.errors.ParseError
+    | baml.errors.InvalidArgument
+    | baml.json.ParseError
+    | baml.json.DecodeError {
     let examples = examples_in(section);
     //# Reject unknown spec sections
     if (examples.length() == 0) {
@@ -51,7 +55,11 @@ function spec_failures(
 
 function assert_spec_examples(
     nums: int[],
-) -> void throws baml.errors.Io | baml.errors.ParseError | baml.json.ParseError | baml.json.DecodeError {
+) -> void throws baml.errors.Io
+    | baml.errors.ParseError
+    | baml.errors.InvalidArgument
+    | baml.json.ParseError
+    | baml.json.DecodeError {
     for (let n in nums) {
         let t = spec_example(n);
         if let ex: SpecExample = t {

@@ -177,6 +177,33 @@ class Autolink {
 
 Empty nodes are constructed as `root.ast.SoftBreak {  }` / `root.ast.HardBreak {  }`.
 
+## Constructing and validating ASTs
+
+For manually assembled renderable trees, prefer these helpers from `baml_src/ns_ast/validation.baml`:
+
+```baml
+function new_document(
+    children: Block[] = [],
+    refs: map<string, LinkRef> = {},
+) -> Document throws baml.errors.InvalidArgument
+
+function new_heading(
+    level: int,
+    children: Inline[],
+    setext: bool = false,
+) -> Heading throws baml.errors.InvalidArgument
+
+function validate_document(document: Document) -> void throws baml.errors.InvalidArgument
+```
+
+`new_heading` creates a post-parse heading (`raw: ""`, `last_line_blank: false`) and accepts levels 1–6; setext headings are further limited to levels 1–2. `new_document` validates its initial tree. `render_html` validates every supplied document too, so invalid manually-built headings raise `baml.errors.InvalidArgument` rather than producing invalid tags such as `<h0>`.
+
+```baml
+let heading = root.ast.new_heading(2, [root.ast.Text { literal: "Hi" }]);
+let doc = root.ast.new_document(children = [heading]);
+let html = render_html(doc)
+```
+
 ## Parser leftover fields
 
 `Paragraph.raw` and `Heading.raw` hold source consumed during inline parse. After `parse()`:

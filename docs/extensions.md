@@ -47,7 +47,7 @@ function to_html(
     markdown: string,
     options: root.block.ParseOptions = root.block.commonmark_options(),
     safe: bool = false,
-) -> string
+) -> string throws baml.errors.InvalidArgument
 ```
 
 Defaulted parameters must be passed by name:
