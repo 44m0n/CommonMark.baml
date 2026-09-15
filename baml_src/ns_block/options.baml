@@ -10,25 +10,75 @@ enum ContinueResult {
     Done,
 }
 
+// Stable extension boundary for block-start rules. Parser stays internal.
+interface BlockStartContext {
+    function is_indented(self) -> bool throws never;
+    function line_chars(self) -> string[] throws never;
+    function next_nonspace(self) -> int throws never;
+    function emit_thematic_break(self) -> void throws never;
+    function consume_rest(self) -> void throws never;
+}
+
 interface BlockStart {
-  function name(self) -> string throws never
-  function try_open(self, parser: Parser) -> StartMatch throws never
-  function triggers(self) -> string[] throws never {
-    let none: string[] = [];
-    none
-  }
-  function allow_indented(self) -> bool throws never {
-    false
-  }
+    function name(self) -> string throws never;
+    function try_open(self, context: BlockStartContext) -> StartMatch throws never;
+    function triggers(self) -> string[] throws never {
+        let none: string[] = [];
+        none
+    }
+    function allow_indented(self) -> bool throws never {
+        false
+    }
+}
+
+class ParserBlockStartContext {
+    parser: Parser,
+    implements BlockStartContext {
+        function is_indented(self) -> bool throws never {
+            self.parser.indented
+        }
+
+        function line_chars(self) -> string[] throws never {
+            self.parser.scan.chars
+        }
+
+        function next_nonspace(self) -> int throws never {
+            self.parser.next_nonspace
+        }
+
+        function emit_thematic_break(self) -> void throws never {
+            self.parser.close_unmatched();
+            self.parser.push_child(open_thematic_break())
+        }
+
+        function consume_rest(self) -> void throws never {
+            self.parser.advance_offset(
+                self.parser.scan.chars.length() - self.parser.scan.pos,
+                false,
+            )
+        }
+    }
+}
+
+function block_start_context(parser: Parser) -> BlockStartContext {
+    ParserBlockStartContext { parser: parser }
+}
+
+function internal_block_parser(context: BlockStartContext) -> Parser {
+    if let internal: ParserBlockStartContext = context {
+        internal.parser
+    } else {
+        baml.sys.panic("BlockStartContext was not created by this parser")
+    }
 }
 
 interface BlockOps {
-  function continue_line(self, parser: Parser, open: Open) -> ContinueResult throws never
-  function finalize(self, parser: Parser, open: Open) -> void throws never
-  function can_contain(self, child: OpenKind) -> bool throws never
-  function accepts_lines(self) -> bool throws never
-  function is_interruptible(self) -> bool throws never
-  function allows_lazy(self) -> bool throws never
+    function continue_line(self, parser: Parser, open: Open) -> ContinueResult throws never;
+    function finalize(self, parser: Parser, open: Open) -> void throws never;
+    function can_contain(self, child: OpenKind) -> bool throws never;
+    function accepts_lines(self) -> bool throws never;
+    function is_interruptible(self) -> bool throws never;
+    function allows_lazy(self) -> bool throws never;
 }
 
 class ParseOptions {
@@ -66,16 +116,15 @@ class PercentBreakStart {
             false
         }
 
-        function try_open(self, parser: Parser) -> StartMatch throws never {
-            if (parser.indented) {
+        function try_open(self, context: BlockStartContext) -> StartMatch throws never {
+            if (context.is_indented()) {
                 return StartMatch.None;
             }
-            if (!looks_like_percent_break(parser.scan.chars, parser.next_nonspace)) {
+            if (!looks_like_percent_break(context.line_chars(), context.next_nonspace())) {
                 return StartMatch.None;
             }
-            parser.close_unmatched();
-            parser.push_child(open_thematic_break());
-            parser.advance_offset(parser.scan.chars.length() - parser.scan.pos, false);
+            context.emit_thematic_break();
+            context.consume_rest();
             StartMatch.Leaf
         }
     }

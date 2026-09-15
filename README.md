@@ -99,7 +99,7 @@ function render_html(document: Document, safe: bool = false) -> string
 function to_html(markdown: string, options: ParseOptions = commonmark_options(), safe: bool = false) -> string
 ```
 
-plus the AST types in `ns_ast` (`Document`, `Block`, `Inline`, and their classes) and `ParseOptions` / `BlockStart` / `InlineParseRule` / `commonmark_options` for dialects.
+plus the AST types in `ns_ast` (`Document`, `Block`, `Inline`, and their classes) and `ParseOptions` / `BlockStart` / `BlockStartContext` / `InlineParseRule` / `InlineParseContext` / `commonmark_options` for dialects.
 
 Everything else — `Parser`, `Open`, scanners, spec helpers, `bamark` argument parsing, and other `ns_*` functions — is unsupported and may change without a major version.
 
@@ -240,8 +240,8 @@ baml.toml                 BAML package + Python/TypeScript generators
 baml_src/main.baml        parse, render_html, to_html (namespace root)
 baml_src/ns_ast/          Document, Block, Inline, ListItem, LinkRef
 baml_src/ns_scan/         preprocess, LineScan (tab stop 4, chars() array)
-baml_src/ns_block/        phase 1: open stack, BlockStart table, each construct
-baml_src/ns_inline/       phase 2: Subject, InlineParseRule table, emphasis/links
+baml_src/ns_block/        phase 1: open stack, BlockStartContext rule table
+baml_src/ns_inline/       phase 2: Subject + InlineParseContext rule table
 baml_src/ns_html/         HTML renderer (iterative) and escaping
 baml_src/ns_cli/          bamark
 baml_src/ns_spec/         JSON spec runner used by baml test

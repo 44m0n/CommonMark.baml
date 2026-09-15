@@ -95,11 +95,11 @@ function render_html(document: Document, safe: bool = false) -> string
 function to_html(markdown: string, options: ParseOptions = commonmark_options(), safe: bool = false) -> string
 ```
 
-plus AST types in `root.ast`, and `ParseOptions` / `BlockStart` / `InlineParseRule` / `commonmark_options` for dialects.
+plus AST types in `root.ast`, and `ParseOptions` / `BlockStart` / `BlockStartContext` / `InlineParseRule` / `InlineParseContext` / `commonmark_options` for dialects.
 
 **Unsupported** internals (may change without a major version): `Parser`, `Open`, `OpenKind`, `BlockOps`, `LineScan`, `Subject`, the spec runner (`ns_spec`), `bamark` helpers (`ns_cli`), and other `ns_*` functions not listed above.
 
-`BlockStart.try_open` and `InlineParseRule.parse` still take `Parser` / `Subject`. Those parameter types are internals; the interfaces are the dialect hook.
+`BlockStart.try_open` receives `BlockStartContext`; `InlineParseRule.parse` receives `InlineParseContext`. These stable interfaces intentionally hide parser and subject internals.
 
 ## Fork vs plugin
 
@@ -112,7 +112,7 @@ A **new block kind that continues across lines** must change:
 
 That is a fork, not a plugin.
 
-**Leaf** blocks that reuse existing nodes (`ThematicBreak`, `CodeBlock`, …) can be plugins: implement `BlockStart`, `push_child` an existing opener, append to `ParseOptions.block_starts`. `PercentBreakStart` in `ns_block/options.baml` is the in-tree example (`%%%` → `ThematicBreak`). Inline extras that cannot add union variants should emit existing nodes such as `HtmlInline`.
+**Leaf** block plugins currently use `BlockStartContext.emit_thematic_break()` to map custom syntax to `ThematicBreak`; `PercentBreakStart` in `ns_block/options.baml` is the in-tree example (`%%%` → `ThematicBreak`). Inline extras that cannot add union variants should emit existing nodes through `InlineParseContext`, such as `HtmlInline`.
 
 ## HTML renderer
 

@@ -1,6 +1,6 @@
 interface InlineParseRule {
-    function name(self) -> string throws never
-    function parse(self, subject: Subject) -> bool throws never
+    function name(self) -> string throws never;
+    function parse(self, context: InlineParseContext) -> bool throws never;
     function triggers(self) -> string[] throws never {
         let none: string[] = [];
         none
@@ -9,7 +9,7 @@ interface InlineParseRule {
 
 function apply_inline_rules(s: Subject, rules: InlineParseRule[]) -> bool {
     for (let rule in rules) {
-        if (rule.parse(s)) {
+        if (rule.parse(inline_parse_context(s))) {
             return true;
         }
     }

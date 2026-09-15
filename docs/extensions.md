@@ -4,7 +4,7 @@ The engine is rule-table driven. Phase 1 walks `ParseOptions.block_starts`; phas
 
 `commonmark_options()` fills both tables for CommonMark 0.31.2. See [Architecture](architecture.md) for the two-phase pipeline, [AST](ast.md) for node types, [HTML](html.md) for rendering, and [Usage](usage.md) for `parse` / `to_html`.
 
-This page is the supported way to add syntax. `Parser`, `Open`, `BlockOps`, and the `Subject` helpers are internals: you will touch them to implement a rule, but they may change.
+This page is the supported way to add syntax. `BlockStartContext` and `InlineParseContext` are the stable extension boundaries. `Parser`, `Open`, `BlockOps`, and `Subject` remain internals and may change.
 
 ## ParseOptions
 
@@ -71,16 +71,19 @@ enum StartMatch {
     Leaf,
 }
 
+interface BlockStartContext {
+    function is_indented(self) -> bool
+    function line_chars(self) -> string[]
+    function next_nonspace(self) -> int
+    function emit_thematic_break(self) -> void
+    function consume_rest(self) -> void
+}
+
 interface BlockStart {
-  function name(self) -> string throws never
-  function try_open(self, parser: Parser) -> StartMatch throws never
-  function triggers(self) -> string[] throws never {
-    let none: string[] = [];
-    none
-  }
-  function allow_indented(self) -> bool throws never {
-    false
-  }
+    function name(self) -> string
+    function try_open(self, context: BlockStartContext) -> StartMatch
+    function triggers(self) -> string[] { [] }
+    function allow_indented(self) -> bool { false }
 }
 ```
 
@@ -112,23 +115,15 @@ So: **matching is on `triggers()`, not `name()`**. Empty `triggers()` plus `allo
 
 ### Typical `try_open` (leaf)
 
-Reuse an existing AST node. Pattern from `PercentBreakStart` / `ThematicBreakStart`:
+Use the context rather than parser fields. The stable block context intentionally exposes only the operations needed by the supported leaf extension path:
 
-- If `parser.indented`, return `StartMatch.None` (unless this start allows indent).
-- Inspect `parser.scan.chars` and `parser.next_nonspace`.
-- If it is not your syntax, return `StartMatch.None` — do not mutate the parser.
-- `parser.close_unmatched()`
-- `parser.push_child(...)` with an existing opener such as `open_thematic_break()`
-- `parser.advance_offset(...)` past the consumed text
-- Return `StartMatch.Leaf`
+- Check `context.is_indented()` and inspect `context.line_chars()` from `context.next_nonspace()`.
+- If it is not your syntax, return `StartMatch.None` without emitting a node.
+- `context.emit_thematic_break()` closes unmatched nodes and emits a `ThematicBreak`.
+- `context.consume_rest()` consumes the remaining characters on the line.
+- Return `StartMatch.Leaf`.
 
-`advance_offset(count, columns)` takes a character count and a `columns: bool`. `false` means count characters, not columns (tabs are one character, not a run of spaces).
-
-### Typical `try_open` (container)
-
-`BlockQuoteStart` consumes `>`, `close_unmatched()`, `push_child(open_block_quote())`, returns `StartMatch.Container` so a heading or list on the rest of the line can still open.
-
-`ListItemStart` may `push_child(open_list(data))` and then `push_child(open_list_item(data))` when the tip is not an already-matching list, and returns `Container`.
+The context currently supports custom thematic-break syntax. New containers and other block node forms require an engine change because they need `Open` / `BlockOps`, which are intentionally not public extension dependencies.
 
 ### Built-in starts
 
@@ -147,11 +142,11 @@ Order is the `commonmark_options()` array. Later starts run only if every earlie
 
 Append custom starts at the **end** unless you need to preempt CommonMark. Inserting earlier can steal lines from quotes, fences, lists, and thematic breaks and break spec conformance.
 
-`SetextHeadingStart` is a reminder that `try_open` can look at parser state, not only the current character: it returns `None` unless `parser.last_matched().type_name == OpenKind.Paragraph`.
+`SetextHeadingStart` is an in-tree parser rule that inspects internal parser state before it converts a paragraph. That kind of context-sensitive block transformation is intentionally outside the stable extension boundary.
 
 ### Worked example: `PercentBreakStart`
 
-Already in `baml_src/ns_block/options.baml`. A line of three or more `%` characters, with spaces or tabs allowed between them, becomes a thematic break (`<hr />`). It reuses `open_thematic_break()` / `ThematicBreak` — no new `Block` variant.
+Already in `baml_src/ns_block/options.baml`. A line of three or more `%` characters, with spaces or tabs allowed between them, becomes a thematic break (`<hr />`) through `BlockStartContext.emit_thematic_break()` — no new `Block` variant.
 
 ```baml
 class PercentBreakStart {
@@ -168,16 +163,15 @@ class PercentBreakStart {
             false
         }
 
-        function try_open(self, parser: Parser) -> StartMatch throws never {
-            if (parser.indented) {
+        function try_open(self, context: BlockStartContext) -> StartMatch throws never {
+            if (context.is_indented()) {
                 return StartMatch.None;
             }
-            if (!looks_like_percent_break(parser.scan.chars, parser.next_nonspace)) {
+            if (!looks_like_percent_break(context.line_chars(), context.next_nonspace())) {
                 return StartMatch.None;
             }
-            parser.close_unmatched();
-            parser.push_child(open_thematic_break());
-            parser.advance_offset(parser.scan.chars.length() - parser.scan.pos, false);
+            context.emit_thematic_break();
+            context.consume_rest();
             StartMatch.Leaf
         }
     }
@@ -201,9 +195,21 @@ From `ns_block` tests the call is `root.to_html(..., options = options)` because
 `baml_src/ns_inline/rules.baml`:
 
 ```baml
+interface InlineParseContext {
+    function peek(self) -> string?
+    function peek_at(self, offset: int) -> string?
+    function bump(self) -> string?
+    function position(self) -> int
+    function input(self) -> string
+    function chars(self) -> string[]
+    function advance_to(self, position: int) -> void
+    function push_node(self, node: root.ast.Inline) -> void
+    function push_text(self, text: string) -> void
+}
+
 interface InlineParseRule {
     function name(self) -> string throws never
-    function parse(self, subject: Subject) -> bool throws never
+    function parse(self, context: InlineParseContext) -> bool throws never
     function triggers(self) -> string[] throws never {
         let none: string[] = [];
         none
@@ -211,7 +217,7 @@ interface InlineParseRule {
 }
 ```
 
-`parse` returns `true` if it consumed input. If it looks at the subject and bails, it must restore the cursor (`advance_to` back to the start) and return `false`.
+`parse` returns `true` if it consumed input. If it looks at the context and bails, it must restore the cursor (`context.advance_to(start)`) and return `false`.
 
 `run_inline_parse` walks the subject. For each character:
 
@@ -234,21 +240,20 @@ Built-in rules (`commonmark_inline_rules()`) do **not** set `triggers()`. They r
 
 Push custom rules at the end so CommonMark still sees `\`, `` ` ``, `*`, `_`, `[`, `]`, `!`, `<`, `&`, and newlines first. Order among custom rules matters the same way: first `true` wins.
 
-### Subject helpers (unsupported)
+### `InlineParseContext`
 
-`baml_src/ns_inline/subject.baml`. These are free functions, not methods. They are internals and may change. You need them to write a rule:
+`InlineParseContext` is the stable API for rules. Its methods are the operations a rule needs without exposing delimiter, bracket, reference, or linked-list state:
 
-| Function | Role |
+| Method | Role |
 | --- | --- |
-| `peek(s)` | Current character, or `null` at end |
-| `peek_at(s, offset)` | Character at `pos + offset` |
-| `bump(s)` | Consume one character, return it |
-| `pos(s)` | Current index |
-| `advance_to(s, p)` | Set the index (restore on failure, or skip a matched span) |
-| `push_node(s, node)` | Emit a finished `root.ast.Inline` |
-| `push_text(s, t)` | Buffer text (coalesced later) |
+| `peek()` / `peek_at(offset)` | Read the current character or a lookahead |
+| `bump()` | Consume one character |
+| `position()` / `advance_to(p)` | Read or set the cursor; restore it on a failed match |
+| `input()` / `chars()` | Read the source line and its materialized characters |
+| `push_node(node)` | Emit a finished `root.ast.Inline` |
+| `push_text(text)` | Buffer text, coalesced by the parser |
 
-From another namespace they are `root.inline.peek`, `root.inline.Subject`, and you implement `root.inline.InlineParseRule`.
+From another namespace implement `root.inline.InlineParseRule` with a `root.inline.InlineParseContext` parameter. `Subject` and its helper functions are unsupported internals.
 
 ### Worked example: `PercentSpanRule`
 
@@ -265,27 +270,27 @@ class PercentSpanRule {
             ["%"]
         }
 
-        function parse(self, s: Subject) -> bool throws never {
-            if (peek(s) != "%") {
+        function parse(self, context: InlineParseContext) -> bool throws never {
+            if (context.peek() != "%") {
                 return false;
             }
-            let start = pos(s);
-            let _ = bump(s);
-            let i = pos(s);
-            let line = s.scan.line;
-            let chars = s.scan.chars;
+            let start = context.position();
+            let _ = context.bump();
+            let i = context.position();
+            let line = context.input();
+            let chars = context.chars();
             while (i < chars.length()) {
                 if (chars.at(i) == "%") {
-                    let inner = line.slice(pos(s), i);
-                    advance_to(s, i + 1);
-                    push_node(s, root.ast.HtmlInline { literal: "<span>" });
-                    push_text(s, inner);
-                    push_node(s, root.ast.HtmlInline { literal: "</span>" });
+                    let inner = line.slice(context.position(), i);
+                    context.advance_to(i + 1);
+                    context.push_node(root.ast.HtmlInline { literal: "<span>" });
+                    context.push_text(inner);
+                    context.push_node(root.ast.HtmlInline { literal: "</span>" });
                     return true;
                 }
                 i += 1;
             }
-            advance_to(s, start);
+            context.advance_to(start);
             false
         }
     }
@@ -380,15 +385,11 @@ enum OpenKind {
 }
 ```
 
-`ContinueResult` is `Ok | Stop | Done`. Treat `Open`, `BlockOps`, and `OpenKind` as internals. A leaf that reuses `open_thematic_break()` / `open_html_block()` / `open_fenced_code(...)` inherits existing ops. Inventing a new container means you are no longer on the plugin path.
+`ContinueResult` is `Ok | Stop | Done`. Treat `Open`, `BlockOps`, and `OpenKind` as internals. New containers and any feature that needs those types are engine changes, not stable plugins.
 
-### Parser fields used in `try_open`
+### Internal parser state
 
-Also unsupported, also what you will read:
-
-`indented`, `indent`, `blank`, `next_nonspace`, `scan.chars`, `scan.pos`, `tip()`, `last_matched()`, `close_unmatched()`, `push_child()`, `advance_offset(count, columns)`, `advance_next_nonspace()`.
-
-Do not depend on other `Parser` fields from dialect code.
+Do not depend on `Parser` fields or methods from dialect code. The stable `BlockStartContext` deliberately exposes only indentation, the materialized current line, the first non-space index, thematic-break emission, and consuming the remaining input. Request additional context methods only when a use case cannot be expressed with that boundary.
 
 ## Gotchas
 
@@ -397,8 +398,8 @@ Do not depend on other `Parser` fields from dialect code.
 - **Rule order.** First matching block start wins that round; first inline `parse` that returns `true` wins that character. Append unless you intend to preempt CommonMark.
 - **Indented-code trick.** `allow_indented() == true` and empty `triggers()` → tried only on indented lines.
 - **`safe` is renderer-only.** `to_html(..., safe = true)` / `render_html(doc, safe = true)` omit `HtmlInline` and `HtmlBlock` as `<!-- raw HTML omitted -->`. They do not change the parse. `PercentSpanRule` therefore loses its `<span>` tags under `safe` — the same path as a literal `<span>`. Map onto `Emph`, `ThematicBreak`, `CodeSpan`, or `Text` if the dialect must survive safe mode. Safe mode also empties `javascript:` / `vbscript:` / `data:` / `file:` URLs; it is not a general sanitizer. It does not cap parse cost; see [Limits](usage.md#limits).
-- **Same-namespace starts.** Put custom `BlockStart` classes in `baml_src/ns_block/` so `Parser`, `StartMatch`, and `open_*` are in scope. From another namespace implement `root.block.BlockStart` and type `parser: root.block.Parser`.
-- **Inline rules in other namespaces.** Implement `root.inline.InlineParseRule`; `Subject` is `root.inline.Subject`; helpers are `root.inline.peek` and so on.
+- **Block starts in other namespaces.** Implement `root.block.BlockStart` with a `root.block.BlockStartContext` parameter. Do not depend on `Parser`, `Open`, or `open_*` helpers.
+- **Inline rules in other namespaces.** Implement `root.inline.InlineParseRule` with a `root.inline.InlineParseContext` parameter. Do not depend on `Subject` or its helper functions.
 - **After `parse`.** Do not rely on `Paragraph.raw` / `Heading.raw` or `last_line_blank`. They are cleared. See [Usage](usage.md).
 - **Do not stash and mutate one `commonmark_options()` forever.** Classes are reference types; `.push` mutates the arrays on **that** object. Each `commonmark_options()` call is a fresh `ParseOptions`, so pushing onto a local is fine and the next call is pristine. If you keep the same object and push again, you accumulate rules.
 

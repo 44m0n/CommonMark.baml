@@ -177,7 +177,7 @@ class Parser {
                 if (!block_start_could_match(start, self, ch)) {
                     continue;
                 }
-                let res = start.try_open(self);
+                let res = start.try_open(block_start_context(self));
                 if (res == StartMatch.Container) {
                     container = self.tip();
                     container_index = self.stack.length() - 1;

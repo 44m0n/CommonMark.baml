@@ -21,6 +21,7 @@ without a major version.
   Markdown must bound bytes and wall time themselves.
 - Python and TypeScript client generators in `baml.toml`
   (`baml generate` writes `generated/python` and `generated/typescript`).
+- Stable `BlockStartContext` and `InlineParseContext` interfaces for dialect rules, replacing direct `Parser` and `Subject` parameters.
 
 ### Changed
 

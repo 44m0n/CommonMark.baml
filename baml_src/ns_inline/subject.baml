@@ -1,3 +1,16 @@
+// Stable extension boundary for inline rules. Subject stays internal.
+interface InlineParseContext {
+    function peek(self) -> string? throws never;
+    function peek_at(self, offset: int) -> string? throws never;
+    function bump(self) -> string? throws never;
+    function position(self) -> int throws never;
+    function input(self) -> string throws never;
+    function chars(self) -> string[] throws never;
+    function advance_to(self, position: int) -> void throws never;
+    function push_node(self, node: root.ast.Inline) -> void throws never;
+    function push_text(self, text: string) -> void throws never;
+}
+
 class InlineCell {
     id: int,
     node: root.ast.Inline,
@@ -32,6 +45,59 @@ function subject(raw: string) -> Subject {
         entities: {},
         last_protected: false,
         text_parts: [],
+    }
+}
+
+class SubjectInlineParseContext {
+    subject: Subject,
+    implements InlineParseContext {
+        function peek(self) -> string? throws never {
+            root.inline.peek(self.subject)
+        }
+
+        function peek_at(self, offset: int) -> string? throws never {
+            root.inline.peek_at(self.subject, offset)
+        }
+
+        function bump(self) -> string? throws never {
+            root.inline.bump(self.subject)
+        }
+
+        function position(self) -> int throws never {
+            root.inline.pos(self.subject)
+        }
+
+        function input(self) -> string throws never {
+            self.subject.scan.line
+        }
+
+        function chars(self) -> string[] throws never {
+            self.subject.scan.chars
+        }
+
+        function advance_to(self, position: int) -> void throws never {
+            root.inline.advance_to(self.subject, position)
+        }
+
+        function push_node(self, node: root.ast.Inline) -> void throws never {
+            root.inline.push_node(self.subject, node)
+        }
+
+        function push_text(self, text: string) -> void throws never {
+            root.inline.push_text(self.subject, text)
+        }
+    }
+}
+
+function inline_parse_context(subject: Subject) -> InlineParseContext {
+    SubjectInlineParseContext { subject: subject }
+}
+
+function internal_inline_subject(context: InlineParseContext) -> Subject {
+    if let internal: SubjectInlineParseContext = context {
+        internal.subject
+    } else {
+        baml.sys.panic("InlineParseContext was not created by this parser")
     }
 }
 

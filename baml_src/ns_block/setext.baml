@@ -12,7 +12,8 @@ class SetextHeadingStart {
             false
         }
 
-        function try_open(self, parser: Parser) -> StartMatch throws never {
+        function try_open(self, context: BlockStartContext) -> StartMatch throws never {
+            let parser = internal_block_parser(context);
             if (parser.indented) {
                 return StartMatch.None;
             }

@@ -239,7 +239,8 @@ class HtmlInlineRule {
             "html_inline"
         }
 
-        function parse(self, s: Subject) -> bool throws never {
+        function parse(self, context: InlineParseContext) -> bool throws never {
+            let s = internal_inline_subject(context);
             if (peek(s) != "<") {
                 return false;
             }

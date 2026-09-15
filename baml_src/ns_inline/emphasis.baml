@@ -199,7 +199,8 @@ class EmphasisRule {
             "emphasis"
         }
 
-        function parse(self, s: Subject) -> bool throws never {
+        function parse(self, context: InlineParseContext) -> bool throws never {
+            let s = internal_inline_subject(context);
             let ch = peek(s);
             if (ch != "*" && ch != "_") {
                 return false;

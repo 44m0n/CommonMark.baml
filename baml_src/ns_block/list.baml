@@ -254,7 +254,8 @@ class ListItemStart {
             false
         }
 
-        function try_open(self, parser: Parser) -> StartMatch throws never {
+        function try_open(self, context: BlockStartContext) -> StartMatch throws never {
+            let parser = internal_block_parser(context);
             let container = parser.last_matched();
             if (parser.indented && container.type_name != OpenKind.List) {
                 return StartMatch.None;

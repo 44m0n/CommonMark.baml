@@ -121,27 +121,27 @@ class PercentSpanRule {
             ["%"]
         }
 
-        function parse(self, s: Subject) -> bool throws never {
-            if (peek(s) != "%") {
+        function parse(self, context: InlineParseContext) -> bool throws never {
+            if (context.peek() != "%") {
                 return false;
             }
-            let start = pos(s);
-            let _ = bump(s);
-            let i = pos(s);
-            let line = s.scan.line;
-            let chars = s.scan.chars;
+            let start = context.position();
+            let _ = context.bump();
+            let i = context.position();
+            let line = context.input();
+            let chars = context.chars();
             while (i < chars.length()) {
                 if (chars.at(i) == "%") {
-                    let inner = line.slice(pos(s), i);
-                    advance_to(s, i + 1);
-                    push_node(s, root.ast.HtmlInline { literal: "<span>" });
-                    push_text(s, inner);
-                    push_node(s, root.ast.HtmlInline { literal: "</span>" });
+                    let inner = line.slice(context.position(), i);
+                    context.advance_to(i + 1);
+                    context.push_node(root.ast.HtmlInline { literal: "<span>" });
+                    context.push_text(inner);
+                    context.push_node(root.ast.HtmlInline { literal: "</span>" });
                     return true;
                 }
                 i += 1;
             }
-            advance_to(s, start);
+            context.advance_to(start);
             false
         }
     }

@@ -13,7 +13,8 @@ class IndentedCodeStart {
             true
         }
 
-        function try_open(self, parser: Parser) -> StartMatch throws never {
+        function try_open(self, context: BlockStartContext) -> StartMatch throws never {
+            let parser = internal_block_parser(context);
             if (!(parser.indented && !parser.tip().ops.is_interruptible() && !parser.blank)) {
                 return StartMatch.None;
             }

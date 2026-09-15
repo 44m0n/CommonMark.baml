@@ -112,7 +112,8 @@ class BangRule {
             "bang"
         }
 
-        function parse(self, s: Subject) -> bool throws never {
+        function parse(self, context: InlineParseContext) -> bool throws never {
+            let s = internal_inline_subject(context);
             if (peek(s) != "!") {
                 return false;
             }
@@ -149,7 +150,8 @@ class OpenBracketRule {
             "open_bracket"
         }
 
-        function parse(self, s: Subject) -> bool throws never {
+        function parse(self, context: InlineParseContext) -> bool throws never {
+            let s = internal_inline_subject(context);
             if (peek(s) != "[") {
                 return false;
             }
@@ -182,7 +184,8 @@ class CloseBracketRule {
             "close_bracket"
         }
 
-        function parse(self, s: Subject) -> bool throws never {
+        function parse(self, context: InlineParseContext) -> bool throws never {
+            let s = internal_inline_subject(context);
             if (peek(s) != "]") {
                 return false;
             }
