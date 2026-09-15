@@ -1,6 +1,6 @@
 [package]
 name = "CommonMark.baml"
-# Tested with BAML toolchain 0.19.0 (canary): `baml toolchain use 0.19.0`
+# Pinned to tested BAML nightly 0.19.1-nightly.20260911.a.
 
 # Language-bridge SDKs: `baml generate` writes `baml_sdk/` under each output_dir.
 # Consumers install the matching runtime (`baml-bridge` / `@boundaryml/baml-bridge`)
@@ -15,3 +15,6 @@ naming_convention = "preserve-case"
 output_type = "typescript/node"
 output_dir = "generated/typescript"
 naming_convention = "preserve-case"
+
+[toolchain]
+version = "0.19.1-nightly.20260911.a"

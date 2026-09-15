@@ -9,7 +9,7 @@ This tree implements CommonMark only. It does not implement GitHub Flavored Mark
 | Project version | **0.8** ([changelog](CHANGELOG.md); git tag, not `0.8.0`) |
 | Spec | CommonMark **0.31.2** (`bamark -V` prints this, not the project version) |
 | Conformance | **652/652** examples in `vendor/commonmark-0.31.2/` |
-| Toolchain | BAML **0.19.0** (`baml toolchain use 0.19.0`) |
+| Toolchain | BAML **0.19.1-nightly.20260911.a** (pinned in `baml.toml`) |
 | License | [Apache 2.0](LICENSE) |
 
 ## What this repository is
@@ -45,10 +45,10 @@ brew install baml
 # or
 curl -fsSL https://baml.dev/install.sh | bash
 
-baml toolchain use 0.19.0
+baml toolchain use 0.19.1-nightly.20260911.a
 ```
 
-Confirm with `baml --version` / `baml toolchain list`. CI (`.github/workflows/test.yml`) installs the same way and runs `baml check` then `baml test` on 0.19.0.
+`baml.toml` pins the project toolchain. Confirm with `baml --version` / `baml toolchain list`. CI (`.github/workflows/test.yml`) selects the same version and runs `baml check` then `baml test`.
 
 ## Quick start
 
@@ -215,7 +215,7 @@ Callers that accept untrusted Markdown must bound bytes and wall time themselves
 ## Tests
 
 ```bash
-baml toolchain use 0.19.0
+baml toolchain use 0.19.1-nightly.20260911.a
 baml check          # type-check
 baml test           # unit tests + all 652 spec examples
 ```
@@ -248,7 +248,7 @@ baml_src/ns_spec/         JSON spec runner used by baml test
 docs/                     usage, AST, extensions, architecture, HTML, testing
 vendor/commonmark-0.31.2/ spec.txt, spec-tests.json, spec_tests.py
 vendor/html5-entities.json WHATWG named-character table (also embedded in-tree)
-.github/workflows/         baml check + baml test on 0.19.0
+.github/workflows/         baml check + baml test on the pinned BAML nightly
 CHANGELOG.md              tagged releases
 generated/                created by baml generate; not committed
 ```

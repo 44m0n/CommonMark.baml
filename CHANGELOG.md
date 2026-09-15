@@ -24,7 +24,7 @@ without a major version.
 
 ### Changed
 
-- Migrated the tested BAML toolchain and CI pin to `0.19.0`. JSON error types in the spec runner now use the renamed `baml.json.ParseError` and `baml.json.DecodeError` types.
+- Pinned the project and CI to tested BAML nightly `0.19.1-nightly.20260911.a`. JSON error types in the spec runner use the renamed `baml.json.ParseError` and `baml.json.DecodeError` types.
 - Rewrote the root README as a project overview: what the repository contains,
   how to consume it, versions vs the spec string, API, coverage, engine,
   tests, and layout.

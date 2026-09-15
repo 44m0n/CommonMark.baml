@@ -4,10 +4,10 @@ This page covers calling CommonMark.baml from BAML and running the `bamark` CLI.
 
 ## Requirements
 
-Use BAML toolchain 0.19.0:
+`baml.toml` pins BAML nightly 0.19.1-nightly.20260911.a. To select it globally too:
 
 ```bash
-baml toolchain use 0.19.0
+baml toolchain use 0.19.1-nightly.20260911.a
 ```
 
 The project is a BAML package: `baml.toml` at the repository root and sources under `baml_src/`.
