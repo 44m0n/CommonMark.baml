@@ -1,5 +1,11 @@
 CommonMark.baml
 Copyright 2026 Ramon C Horomnea
+Project repository: https://github.com/44m0n/CommonMark.baml
+
+Unless otherwise noted, the original source code and documentation in this
+repository are licensed under the Apache License, Version 2.0. See LICENSE.
+When redistributing this work or derivative works, retain this NOTICE and the
+applicable copyright and attribution notices below.
 
 This product includes software developed by Ramon C Horomnea.
 
@@ -14,15 +20,20 @@ https://creativecommons.org/licenses/by-sa/4.0/
 
 spec_tests.py
 Copyright (c) 2014, John MacFarlane
-BSD-2-Clause
+Licensed under BSD-2-Clause:
+https://spdx.org/licenses/BSD-2-Clause.html
 
 normalize.py includes code derived from the markdowntest project
 Copyright 2013 Karl Dubost
-MIT License
+Licensed under the MIT License:
+https://spdx.org/licenses/MIT.html
 
 HTML named character references
 (vendor/html5-entities.json and baml_src/ns_inline/named_entities_json.baml)
 Copyright © WHATWG (Apple, Google, Mozilla, Microsoft)
-The data file is licensed under CC BY 4.0. Portions incorporated into
-source code are licensed under the BSD 3-Clause License.
+The data file is licensed under CC BY 4.0:
+https://creativecommons.org/licenses/by/4.0/
+Portions incorporated into source code are licensed under the BSD 3-Clause
+License:
+https://spdx.org/licenses/BSD-3-Clause.html
 Source: https://html.spec.whatwg.org/entities.json
