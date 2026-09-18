@@ -54,7 +54,7 @@ baml toolchain use 0.19.1-nightly.20260911.a
 
 End users can install the prebuilt `bamark` CLI without installing BAML or cloning this repository. Releases contain platform-specific binaries, `LICENSE`, `NOTICE`, and SHA-256 checksums.
 
-On Linux or macOS:
+On Linux (including WSL) or macOS:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/44m0n/CommonMark.baml/main/install.sh | sh
