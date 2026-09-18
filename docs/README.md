@@ -8,7 +8,7 @@ These pages describe usage (including resource limits), spec coverage, the AST, 
 
 ## Contents
 
-- [Changelog](../CHANGELOG.md) — tagged releases (`v0.9.0` and later). Project version is the Git tag; `bamark -V` prints `bamark 0.9.0 (CommonMark 0.31.2)`.
+- [Changelog](../CHANGELOG.md) — tagged releases (`v0.9.0` and later). Project version is the Git tag; `bamark -V` prints `bamark 0.9.1 (CommonMark 0.31.2)`.
 - [Usage](usage.md) — `parse`, `render_html`, `to_html`, the `bamark` CLI, and [limits](usage.md#limits).
 - [Spec coverage](coverage.md) — CommonMark 0.31.2 conformance (652/652) and what is out of scope.
 - [AST](ast.md) — `Document`, `Block`, `Inline`, and post-`parse()` field conventions.

@@ -3,8 +3,8 @@
 All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-Git tags are the project versions (`v0.9.0`, not `0.9.0`). `bamark -V` prints
-`bamark 0.9.0 (CommonMark 0.31.2)`: the first version is the application release
+Git tags are the project versions (`v0.9.1`, not `0.9.1`). `bamark -V` prints
+`bamark 0.9.1 (CommonMark 0.31.2)`: the first version is the application release
 and the second is the [CommonMark](https://spec.commonmark.org/0.31.2/) spec target.
 
 The supported v1 surface is `parse`, `render_html`, and `to_html`, plus the AST
@@ -13,6 +13,13 @@ dialects. Other `ns_*` functions are unsupported internals and may change
 without a major version.
 
 ## [Unreleased]
+
+## [0.9.1] - 2026-09-18
+
+### Changed
+
+- Expanded `bamark --help` with stdin/stdout/stderr behavior, shell redirection, exit statuses, `--` semantics, examples, and the input-file truncation warning.
+- Clarified Linux, macOS, WSL, and Windows installation and CLI usage documentation.
 
 ## [0.9.0] - 2026-09-18
 
@@ -70,6 +77,7 @@ First tagged release. CommonMark 0.31.2 only; this tree does not implement GFM.
 - `http:` / `https:` / relative URLs still pass; attributes are not rewritten.
   `safe` does not cap parse or render cost.
 
-[Unreleased]: https://github.com/44m0n/CommonMark.baml/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/44m0n/CommonMark.baml/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/44m0n/CommonMark.baml/releases/tag/v0.9.1
 [0.9.0]: https://github.com/44m0n/CommonMark.baml/releases/tag/v0.9.0
 [0.8]: https://github.com/44m0n/CommonMark.baml/releases/tag/0.8

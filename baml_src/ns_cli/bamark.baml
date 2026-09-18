@@ -7,7 +7,7 @@ class BamarkArgs {
 }
 
 function bamark_release_version() -> string {
-    "0.9.0"
+    "0.9.1"
 }
 
 function commonmark_spec_version() -> string {
@@ -165,9 +165,9 @@ test "parse_bamark_args help and version flags" {
 }
 
 test "bamark version identifies the release and spec" {
-    assert.equal(bamark_release_version(), "0.9.0");
+    assert.equal(bamark_release_version(), "0.9.1");
     assert.equal(commonmark_spec_version(), "0.31.2");
-    assert.is_true(bamark_usage().includes("bamark 0.9.0 (CommonMark 0.31.2)"))
+    assert.is_true(bamark_usage().includes("bamark 0.9.1 (CommonMark 0.31.2)"))
 }
 
 test "parse_bamark_args skips program name and sets safe" {
