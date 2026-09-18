@@ -6,8 +6,8 @@ This tree implements CommonMark only. It does not implement GitHub Flavored Mark
 
 | | |
 | --- | --- |
-| Project version | **0.8** ([changelog](CHANGELOG.md); git tag, not `0.8.0`) |
-| Spec | CommonMark **0.31.2** (`bamark -V` prints this, not the project version) |
+| Project version | **v0.9.0** ([changelog](CHANGELOG.md); GitHub release tag) |
+| Spec | CommonMark **0.31.2** (`bamark --version` reports both versions) |
 | Conformance | **652/652** examples in `vendor/commonmark-0.31.2/` |
 | Toolchain | BAML **0.19.1-nightly.20260911.a** (pinned in `baml.toml`) |
 | License | [Apache 2.0](LICENSE) |
@@ -49,6 +49,37 @@ baml toolchain use 0.19.1-nightly.20260911.a
 ```
 
 `baml.toml` pins the project toolchain. Confirm with `baml --version` / `baml toolchain list`. CI (`.github/workflows/test.yml`) selects the same version and runs `baml check` then `baml test`.
+
+## Install the CLI
+
+End users can install the prebuilt `bamark` CLI without installing BAML or cloning this repository. Releases contain platform-specific binaries, `LICENSE`, `NOTICE`, and SHA-256 checksums.
+
+On Linux or macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/44m0n/CommonMark.baml/main/install.sh | sh
+```
+
+On Windows PowerShell:
+
+```powershell
+iex (irm https://raw.githubusercontent.com/44m0n/CommonMark.baml/main/install.ps1)
+```
+
+The installers use the latest GitHub Release by default. Pin the `v0.9.0` release with `BAMARK_VERSION`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/44m0n/CommonMark.baml/main/install.sh \
+  | BAMARK_VERSION=v0.9.0 sh
+```
+
+The Unix installer installs to `~/.local/bin` by default. The PowerShell installer installs to `%LOCALAPPDATA%\Programs\bamark` and adds that directory to the user PATH. Open a new shell after installation if needed. Supported release targets are Linux x86_64, macOS x86_64, macOS arm64, and Windows x86_64.
+
+`bamark --version` prints the application version and the target specification:
+
+```text
+bamark 0.9.0 (CommonMark 0.31.2)
+```
 
 ## Quick start
 
@@ -154,7 +185,7 @@ Usage: bamark [options] [file]
 - Input must be UTF-8.
 - `--safe` — same as `to_html(..., safe = true)`.
 - `-h` / `--help` — usage, exit 0.
-- `-V` / `--version` — print `bamark 0.31.2` (spec version), exit 0.
+- `-V` / `--version` — print `bamark 0.9.0 (CommonMark 0.31.2)`, exit 0. The release tag is `v0.9.0`; the CommonMark target is `0.31.2`.
 - `--` ends option parsing so a name like `-weird.md` is a file, not a flag.
 - Unknown flags and extra positionals exit 2. I/O errors (missing file) exit 1.
 
@@ -248,7 +279,7 @@ baml_src/ns_spec/         JSON spec runner used by baml test
 docs/                     usage, AST, extensions, architecture, HTML, testing
 vendor/commonmark-0.31.2/ spec.txt, spec-tests.json, spec_tests.py
 vendor/html5-entities.json WHATWG named-character table (also embedded in-tree)
-.github/workflows/         baml check + baml test on the pinned BAML nightly
+.github/workflows/         validation and tagged-release packaging on the pinned BAML nightly
 CHANGELOG.md              tagged releases
 generated/                created by baml generate; not committed
 ```
@@ -265,7 +296,7 @@ That writes `generated/python/baml_sdk` and `generated/typescript/baml_sdk` from
 
 ## Documentation
 
-- [CHANGELOG.md](CHANGELOG.md) — tagged releases (`0.8` and later)
+- [CHANGELOG.md](CHANGELOG.md) — tagged releases (`v0.9.0` and later)
 - [docs/README.md](docs/README.md) — documentation index
 - [docs/usage.md](docs/usage.md) — library, CLI, and [limits](docs/usage.md#limits)
 - [docs/coverage.md](docs/coverage.md) — CommonMark 0.31.2 construct map and out of scope

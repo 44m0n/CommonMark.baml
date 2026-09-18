@@ -140,7 +140,7 @@ Usage: bamark [options] [file]
 - If `file` is omitted or is `-`, the program reads `/dev/stdin` (Unix, Git Bash, WSL). Native Windows cmd/PowerShell has no `/dev/stdin`; pass a path.
 - `--safe` — same as `to_html(..., safe = true)`. See [html.md](html.md).
 - `-h` / `--help` — print usage and exit 0.
-- `-V` / `--version` — print `bamark 0.31.2` and exit 0. That string is the CommonMark spec version this engine targets, not a semver of this repository.
+- `-V` / `--version` — print `bamark 0.9.0 (CommonMark 0.31.2)` and exit 0. The GitHub release tag is `v0.9.0`; the CommonMark target is `0.31.2`.
 - `--` ends option parsing so a filename such as `-weird.md` is not treated as a flag.
 - Unknown flags (and extra positional arguments) exit 2.
 - I/O errors (including a missing file) exit 1.

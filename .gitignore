@@ -2,4 +2,5 @@
 !.github/
 !.github/**
 bamark
+bamark.exe
 __pycache__/

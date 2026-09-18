@@ -3,9 +3,9 @@
 All notable changes to this project are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-Git tags are the project versions (`0.8`, not `0.8.0`). `bamark -V` prints
-`bamark 0.31.2`: that is the [CommonMark](https://spec.commonmark.org/0.31.2/)
-spec this engine targets, not a semver of this repository.
+Git tags are the project versions (`v0.9.0`, not `0.9.0`). `bamark -V` prints
+`bamark 0.9.0 (CommonMark 0.31.2)`: the first version is the application release
+and the second is the [CommonMark](https://spec.commonmark.org/0.31.2/) spec target.
 
 The supported v1 surface is `parse`, `render_html`, and `to_html`, plus the AST
 types in `ns_ast` and `ParseOptions` / `BlockStart` / `InlineParseRule` for
@@ -13,6 +13,8 @@ dialects. Other `ns_*` functions are unsupported internals and may change
 without a major version.
 
 ## [Unreleased]
+
+## [0.9.0] - 2026-09-18
 
 ### Added
 
@@ -23,6 +25,11 @@ without a major version.
   (`baml generate` writes `generated/python` and `generated/typescript`).
 - Stable `BlockStartContext` and `InlineParseContext` interfaces for dialect rules, replacing direct `Parser` and `Subject` parameters.
 - `root.ast.new_document`, `root.ast.new_heading`, and `root.ast.validate_document` for safely constructing and validating renderable ASTs.
+- Release packaging for standalone Linux, macOS, and Windows `bamark` binaries with checksum-verifying installers.
+
+### Fixed
+
+- Packed CLI argument handling now skips the duplicated packed entrypoint name.
 
 ### Changed
 
@@ -63,5 +70,6 @@ First tagged release. CommonMark 0.31.2 only; this tree does not implement GFM.
 - `http:` / `https:` / relative URLs still pass; attributes are not rewritten.
   `safe` does not cap parse or render cost.
 
-[Unreleased]: https://github.com/44m0n/CommonMark.baml/compare/0.8...HEAD
+[Unreleased]: https://github.com/44m0n/CommonMark.baml/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/44m0n/CommonMark.baml/releases/tag/v0.9.0
 [0.8]: https://github.com/44m0n/CommonMark.baml/releases/tag/0.8

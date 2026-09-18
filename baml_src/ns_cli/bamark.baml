@@ -6,6 +6,14 @@ class BamarkArgs {
     error: string?,
 }
 
+function bamark_release_version() -> string {
+    "0.9.0"
+}
+
+function commonmark_spec_version() -> string {
+    "0.31.2"
+}
+
 function bamark_usage() -> string {
     [
         "Usage: bamark [options] [file]",
@@ -13,7 +21,7 @@ function bamark_usage() -> string {
         "",
         "  --safe         Omit raw HTML and empty javascript:, vbscript:, data:, and file: URLs",
         "  -h, --help     Show this help",
-        "  -V, --version  Print bamark 0.31.2 (CommonMark spec version)",
+        `  -V, --version  Print bamark ${bamark_release_version()} (CommonMark ${commonmark_spec_version()})`,
         "",
         "If file is omitted or is -, read stdin (Unix, Git Bash, WSL).",
         "On Windows cmd/PowerShell, pass a file path. Input must be UTF-8.",
@@ -101,7 +109,9 @@ function bamark() -> void {
         baml.sys.exit(0);
     }
     if (args.version) {
-        baml.io.println("bamark 0.31.2");
+        baml.io.println(
+            `bamark ${bamark_release_version()} (CommonMark ${commonmark_spec_version()})`,
+        );
         baml.sys.exit(0);
     }
     let md = read_markdown(args.input) catch_all (e) {
@@ -125,6 +135,12 @@ test "parse_bamark_args help and version flags" {
     assert.is_true(ver_long.version);
     let ver_short = parse_bamark_args(["-V"]);
     assert.is_true(ver_short.version)
+}
+
+test "bamark version identifies the release and spec" {
+    assert.equal(bamark_release_version(), "0.9.0");
+    assert.equal(commonmark_spec_version(), "0.31.2");
+    assert.is_true(bamark_usage().includes("bamark 0.9.0 (CommonMark 0.31.2)"))
 }
 
 test "parse_bamark_args skips program name and sets safe" {
