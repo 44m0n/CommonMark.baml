@@ -17,15 +17,29 @@ function commonmark_spec_version() -> string {
 function bamark_usage() -> string {
     [
         "Usage: bamark [options] [file]",
-        "Read Markdown from a file or stdin and write HTML to stdout.",
+        `Parse CommonMark ${commonmark_spec_version()} Markdown and write raw HTML to stdout.`,
         "",
-        "  --safe         Omit raw HTML and empty javascript:, vbscript:, data:, and file: URLs",
-        "  -h, --help     Show this help",
-        `  -V, --version  Print bamark ${bamark_release_version()} (CommonMark ${commonmark_spec_version()})`,
+        "Options:",
+        "  --safe         Replace raw HTML with comments; blank dangerous href/src",
+        "                 URLs (javascript:, vbscript:, data:, file:).",
+        "                 Not a complete HTML sanitizer.",
+        "  -h, --help     Show this help and exit.",
+        `  -V, --version  Print bamark ${bamark_release_version()} (CommonMark ${commonmark_spec_version()}) and exit.`,
+        "  --             Stop option parsing; use before filenames beginning with '-'.",
         "",
-        "If file is omitted or is -, read stdin (Unix, Git Bash, WSL).",
-        "On Windows cmd/PowerShell, pass a file path. Input must be UTF-8.",
-        "Default matches CommonMark: raw HTML and javascript: URLs pass through.",
+        "FILE is optional or '-' to read /dev/stdin on Unix, Git Bash, or WSL.",
+        "On native Windows cmd/PowerShell, pass a file path. Input must be UTF-8.",
+        "Only one FILE is allowed. Unknown options or extra arguments exit 2;",
+        "read errors exit 1.",
+        "By default, raw HTML and dangerous URL schemes pass through.",
+        `CommonMark ${commonmark_spec_version()} only; this CLI does not implement GFM.`,
+        "Input size, timeout, and nesting depth are not capped.",
+        "",
+        "Examples:",
+        "  bamark README.md",
+        "  bamark --safe README.md",
+        "  cat README.md | bamark",
+        "  bamark -- -weird.md",
         "",
     ]
         .join("\n")
@@ -213,11 +227,24 @@ test "parse_bamark_args skips duplicated packed entrypoint before stdin" {
     assert.equal(parsed.error, null)
 }
 
-test "bamark usage mentions file stdin safe and windows" {
+test "bamark usage documents invocation and limits" {
     let u = bamark_usage();
     assert.is_true(u.includes("[file]"));
     assert.is_true(u.includes("stdin"));
     assert.is_true(u.includes("--safe"));
+    assert.is_true(u.includes("--"));
     assert.is_true(u.includes("javascript:"));
+    assert.is_true(u.includes("vbscript:"));
+    assert.is_true(u.includes("data:"));
+    assert.is_true(u.includes("file:"));
+    assert.is_true(u.includes("Only one FILE"));
+    assert.is_true(u.includes("exit 2"));
+    assert.is_true(u.includes("Not a complete HTML sanitizer"));
+    assert.is_true(u.includes("CommonMark 0.31.2"));
+    assert.is_true(u.includes("Examples:"));
+    assert.is_true(u.includes("bamark README.md"));
+    assert.is_true(u.includes("bamark --safe README.md"));
+    assert.is_true(u.includes("cat README.md | bamark"));
+    assert.is_true(u.includes("bamark -- -weird.md"));
     assert.is_true(u.includes("Windows"))
 }
