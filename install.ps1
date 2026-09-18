@@ -73,6 +73,7 @@ try {
     $PathEntries = if ([string]::IsNullOrWhiteSpace($UserPath)) { @() } else { $UserPath -split ';' | Where-Object { $_ } }
     if (-not ($PathEntries | Where-Object { $_.TrimEnd('\') -ieq $InstallDir.TrimEnd('\') })) {
         [Environment]::SetEnvironmentVariable('Path', (($PathEntries + $InstallDir) -join ';'), 'User')
+        $env:Path = "$InstallDir;$env:Path"
         $PathAdded = $true
     } else {
         $PathAdded = $false
@@ -82,8 +83,10 @@ try {
     if ($PathAdded) {
         Write-Host 'Added the install directory to your user PATH; open a new shell to use it.'
     } else {
-        Write-Host 'Open a new shell if bamark is not already available on PATH.'
+        Write-Host 'The install directory was already on your user PATH.'
     }
+    Write-Host 'Verify the installation with:'
+    Write-Host '  bamark --help'
 } finally {
     if (Test-Path -LiteralPath $TempDir) {
         Remove-Item -LiteralPath $TempDir -Recurse -Force -ErrorAction SilentlyContinue

@@ -73,6 +73,12 @@ install -m 0755 "$tmp/extract/bamark" "$install_dir/bamark"
 
 printf 'Installed bamark %s to %s/bamark\n' "$version" "$install_dir"
 case ":$PATH:" in
-    *":$install_dir:"*) ;;
-    *) printf 'Add %s to PATH to run bamark from any shell.\n' "$install_dir" ;;
+    *":$install_dir:"*)
+        printf 'PATH already contains %s.\n' "$install_dir"
+        ;;
+    *)
+        printf 'PATH was not modified. For the current shell, run:\n'
+        printf '  export PATH="%s:$PATH"\n' "$install_dir"
+        ;;
 esac
+printf 'Verify the installation with:\n  bamark --help\n'
