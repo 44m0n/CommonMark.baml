@@ -17,7 +17,7 @@ function commonmark_spec_version() -> string {
 function bamark_usage() -> string {
     [
         "Usage: bamark [options] [file]",
-        `Parse CommonMark ${commonmark_spec_version()} Markdown and write raw HTML to stdout.`,
+        `Parse CommonMark ${commonmark_spec_version()} Markdown and write rendered HTML to stdout.`,
         "",
         "Options:",
         "  --safe         Replace raw HTML with comments; blank dangerous href/src",
@@ -25,21 +25,34 @@ function bamark_usage() -> string {
         "                 Not a complete HTML sanitizer.",
         "  -h, --help     Show this help and exit.",
         `  -V, --version  Print bamark ${bamark_release_version()} (CommonMark ${commonmark_spec_version()}) and exit.`,
-        "  --             Stop option parsing; use before filenames beginning with '-'.",
+        "  --             End options; use before a FILE whose name begins with '-'.",
         "",
-        "FILE is optional or '-' to read /dev/stdin on Unix, Git Bash, or WSL.",
-        "On native Windows cmd/PowerShell, pass a file path. Input must be UTF-8.",
-        "Only one FILE is allowed. Unknown options or extra arguments exit 2;",
-        "read errors exit 1.",
+        "Input:",
+        "  With no FILE, or FILE '-', read UTF-8 Markdown from standard input.",
+        "  Standard input uses /dev/stdin on Unix-like systems, Git Bash, and WSL.",
+        "  Native Windows cmd.exe and PowerShell should use a FILE path.",
+        "  At most one FILE is allowed.",
+        "",
+        "Output:",
+        "  Rendered HTML goes to stdout; errors go to stderr.",
+        "  Save HTML with: bamark INPUT.md > OUTPUT.html",
+        "  Capture errors with: bamark INPUT.md > OUTPUT.html 2> ERRORS",
+        "",
+        "Exit status:",
+        "  0  Success, --help, or --version.",
+        "  1  Input or I/O error.",
+        "  2  Unknown option or extra argument.",
+        "",
         "By default, raw HTML and dangerous URL schemes pass through.",
         `CommonMark ${commonmark_spec_version()} only; this CLI does not implement GFM.`,
         "Input size, timeout, and nesting depth are not capped.",
+        "Do not redirect output to the input path; it is truncated before reading.",
         "",
         "Examples:",
-        "  bamark README.md",
-        "  bamark --safe README.md",
-        "  cat README.md | bamark",
-        "  bamark -- -weird.md",
+        "  bamark README.md > README.html",
+        "  bamark --safe README.md > README.safe.html",
+        "  bamark < README.md > README.html",
+        "  bamark -- -weird.md > output.html",
         "",
     ]
         .join("\n")
@@ -237,14 +250,21 @@ test "bamark usage documents invocation and limits" {
     assert.is_true(u.includes("vbscript:"));
     assert.is_true(u.includes("data:"));
     assert.is_true(u.includes("file:"));
-    assert.is_true(u.includes("Only one FILE"));
-    assert.is_true(u.includes("exit 2"));
+    assert.is_true(u.includes("At most one FILE"));
+    assert.is_true(u.includes("Unknown option or extra argument"));
     assert.is_true(u.includes("Not a complete HTML sanitizer"));
     assert.is_true(u.includes("CommonMark 0.31.2"));
+    assert.is_true(u.includes("Input:"));
+    assert.is_true(u.includes("Output:"));
+    assert.is_true(u.includes("stdout"));
+    assert.is_true(u.includes("stderr"));
+    assert.is_true(u.includes("OUTPUT.html"));
+    assert.is_true(u.includes("Exit status:"));
+    assert.is_true(u.includes("Do not redirect output to the input path"));
     assert.is_true(u.includes("Examples:"));
-    assert.is_true(u.includes("bamark README.md"));
-    assert.is_true(u.includes("bamark --safe README.md"));
-    assert.is_true(u.includes("cat README.md | bamark"));
-    assert.is_true(u.includes("bamark -- -weird.md"));
+    assert.is_true(u.includes("bamark README.md > README.html"));
+    assert.is_true(u.includes("bamark --safe README.md > README.safe.html"));
+    assert.is_true(u.includes("bamark < README.md > README.html"));
+    assert.is_true(u.includes("bamark -- -weird.md > output.html"));
     assert.is_true(u.includes("Windows"))
 }

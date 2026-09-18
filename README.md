@@ -28,7 +28,7 @@ BAML has no package registry for this kind of library. To reuse the parser from 
 ## What it is not
 
 - **Not GFM, MDX, or “Markdown plus extras.”** No tables, task lists, strikethrough, bare autolinks, footnotes, front matter, or smart punctuation.
-- **Not a sanitizer.** Default HTML matches CommonMark: raw HTML and `javascript:` URLs pass through. `safe` is HTML/script mitigation only; see [Safe mode](#safe-mode).
+- **Not a sanitizer.** Default HTML matches CommonMark: raw HTML and `javascript:`, `vbscript:`, `data:`, and `file:` URLs pass through. `safe` is HTML/script mitigation only; see [Safe mode](#safe-mode).
 - **Not resource-bounded.** There is no timeout, max input size, or nest-depth cap. Callers that accept untrusted Markdown must bound bytes and wall time themselves.
 - **Not a source map.** The AST has no line/column offsets.
 
@@ -90,16 +90,17 @@ bamark --help
 bamark --version
 ```
 
-Convert a Markdown file, use safe mode, read stdin, or handle a filename beginning with `-`:
+Convert a Markdown file, save the HTML with shell redirection, use safe mode, read stdin, or handle a filename beginning with `-`:
 
 ```bash
-bamark README.md
-bamark --safe README.md
-cat README.md | bamark                 # Linux, macOS, Git Bash, or WSL
-bamark -- -weird.md
+bamark README.md > README.html
+bamark --safe README.md > README.safe.html
+cat README.md | bamark > README.html       # Linux, macOS, Git Bash, or WSL
+bamark < README.md > README.html
+bamark -- -weird.md > output.html
 ```
 
-The CLI accepts at most one input file. Native Windows PowerShell and `cmd.exe` should use a file path; `/dev/stdin` is supported on Linux, macOS, Git Bash, and WSL.
+Rendered HTML is written to stdout and errors are written to stderr. Do not redirect output to the input path, such as `bamark README.md > README.md`, because the shell truncates the input before `bamark` reads it. The CLI accepts at most one input file. Native Windows PowerShell and `cmd.exe` should use a file path; `/dev/stdin` is supported on Linux, macOS, Git Bash, and WSL.
 
 `bamark --version` prints the application version and the target specification:
 
@@ -207,21 +208,24 @@ Usage: bamark [options] [file]
 ```
 
 - Markdown from `file`, or `/dev/stdin` if the file is omitted or is `-` (Unix, Git Bash, WSL). Native Windows cmd/PowerShell has no `/dev/stdin`; pass a path.
-- Stdout is **raw HTML**, not JSON.
+- Stdout is **rendered HTML**, not JSON; errors are written to stderr.
+- Save HTML with shell redirection, for example `./bamark README.md > README.html`.
 - Input must be UTF-8.
 - `--safe` — same as `to_html(..., safe = true)`.
 - `-h` / `--help` — usage, exit 0.
 - `-V` / `--version` — print `bamark 0.9.0 (CommonMark 0.31.2)`, exit 0. The release tag is `v0.9.0`; the CommonMark target is `0.31.2`.
 - `--` ends option parsing so a name like `-weird.md` is a file, not a flag.
 - Unknown flags and extra positionals exit 2. I/O errors (missing file) exit 1.
+- Do not redirect output to the input path; the shell truncates it before reading.
 
 ```bash
-printf '%s\n' '# Hi' | ./bamark
-./bamark README.md
-printf '%s\n' '[x](javascript:alert(1))' | ./bamark --safe
+printf '%s\n' '# Hi' | ./bamark > output.html
+./bamark README.md > README.html
+printf '%s\n' '[x](javascript:alert(1))' | ./bamark --safe > safe.html
+./bamark -- -weird.md > output.html
 ```
 
-Default matches CommonMark: raw HTML and `javascript:` URLs pass through unless `--safe` is set.
+Default matches CommonMark: raw HTML and `javascript:`, `vbscript:`, `data:`, and `file:` URLs pass through unless `--safe` is set.
 
 ## CommonMark coverage
 

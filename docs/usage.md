@@ -145,16 +145,19 @@ Usage: bamark [options] [file]
 - Unknown flags (and extra positional arguments) exit 2.
 - I/O errors (including a missing file) exit 1.
 - Input must be UTF-8.
-- Stdout is raw HTML, not JSON.
+- Rendered HTML is written to stdout; errors are written to stderr.
+- Save HTML with shell redirection, for example `./bamark README.md > README.html`.
+- Do not redirect output to the input path; the shell truncates it before reading.
 
-Default behavior matches CommonMark: raw HTML and `javascript:` URLs pass through unless `--safe` is set.
+Default behavior matches CommonMark: raw HTML and `javascript:`, `vbscript:`, `data:`, and `file:` URLs pass through unless `--safe` is set.
 
 ### Examples
 
 ```bash
-printf '%s\n' '# Hi' | ./bamark
-./bamark README.md
-printf '%s\n' '[x](javascript:alert(1))' | ./bamark --safe
+printf '%s\n' '# Hi' | ./bamark > output.html
+./bamark README.md > README.html
+printf '%s\n' '[x](javascript:alert(1))' | ./bamark --safe > safe.html
+./bamark -- -weird.md > output.html
 ```
 
 ### Performance
