@@ -73,7 +73,33 @@ curl -fsSL https://raw.githubusercontent.com/44m0n/CommonMark.baml/main/install.
   | BAMARK_VERSION=v0.9.0 sh
 ```
 
-The Unix installer installs to `~/.local/bin` by default. The PowerShell installer installs to `%LOCALAPPDATA%\Programs\bamark` and adds that directory to the user PATH. Open a new shell after installation if needed. Supported release targets are Linux x86_64, macOS x86_64, macOS arm64, and Windows x86_64.
+The Unix installer installs to `~/.local/bin` by default and does not modify shell profiles. If it reports that PATH was not modified, make `bamark` available in the current shell with:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+For future shells, add the same export to your shell profile. The PowerShell installer installs to `%LOCALAPPDATA%\Programs\bamark` and adds that directory to the user PATH; open a new shell if needed. Both installers print a `bamark --help` verification command after installation. Supported release targets are Linux x86_64, macOS x86_64, macOS arm64, and Windows x86_64.
+
+### Using the installed CLI
+
+Verify the installation and inspect all options:
+
+```bash
+bamark --help
+bamark --version
+```
+
+Convert a Markdown file, use safe mode, read stdin, or handle a filename beginning with `-`:
+
+```bash
+bamark README.md
+bamark --safe README.md
+cat README.md | bamark                 # Linux, macOS, Git Bash, or WSL
+bamark -- -weird.md
+```
+
+The CLI accepts at most one input file. Native Windows PowerShell and `cmd.exe` should use a file path; `/dev/stdin` is supported on Linux, macOS, Git Bash, and WSL.
 
 `bamark --version` prints the application version and the target specification:
 
