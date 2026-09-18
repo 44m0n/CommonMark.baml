@@ -90,17 +90,31 @@ bamark --help
 bamark --version
 ```
 
-Convert a Markdown file, save the HTML with shell redirection, use safe mode, read stdin, or handle a filename beginning with `-`:
+Choose the input source and output destination with these common forms. The `<` and `>` operators are handled by your shell; `bamark` always writes rendered HTML to stdout:
 
 ```bash
+# File -> stdout
+bamark README.md
+
+# Stdin -> stdout: pipe a file, or run `bamark` and type Markdown, then Ctrl-D
+cat README.md | bamark                  # Linux, macOS, Git Bash, or WSL
+bamark                                   # Linux, macOS, Git Bash, or WSL
+
+# File -> file
 bamark README.md > README.html
-bamark --safe README.md > README.safe.html
-cat README.md | bamark > README.html       # Linux, macOS, Git Bash, or WSL
+
+# Stdin -> file
 bamark < README.md > README.html
+```
+
+Use safe mode or `--` for special cases:
+
+```bash
+bamark --safe README.md > README.safe.html
 bamark -- -weird.md > output.html
 ```
 
-Rendered HTML is written to stdout and errors are written to stderr. Do not redirect output to the input path, such as `bamark README.md > README.md`, because the shell truncates the input before `bamark` reads it. The CLI accepts at most one input file. Native Windows PowerShell and `cmd.exe` should use a file path; `/dev/stdin` is supported on Linux, macOS, Git Bash, and WSL.
+Errors are written to stderr. Do not redirect output to the input path, such as `bamark README.md > README.md`, because the shell truncates the input before `bamark` reads it. The CLI accepts at most one input file. Native Windows PowerShell and `cmd.exe` should use a file path; `/dev/stdin` is supported on Linux, macOS, Git Bash, and WSL.
 
 `bamark --version` prints the application version and the target specification:
 
@@ -209,7 +223,7 @@ Usage: bamark [options] [file]
 
 - Markdown from `file`, or `/dev/stdin` if the file is omitted or is `-` (Unix, Git Bash, WSL). Native Windows cmd/PowerShell has no `/dev/stdin`; pass a path.
 - Stdout is **rendered HTML**, not JSON; errors are written to stderr.
-- Save HTML with shell redirection, for example `./bamark README.md > README.html`.
+- Save HTML with shell redirection; `<` and `>` are shell operators, not `bamark` options.
 - Input must be UTF-8.
 - `--safe` — same as `to_html(..., safe = true)`.
 - `-h` / `--help` — usage, exit 0.
@@ -218,9 +232,26 @@ Usage: bamark [options] [file]
 - Unknown flags and extra positionals exit 2. I/O errors (missing file) exit 1.
 - Do not redirect output to the input path; the shell truncates it before reading.
 
+The four common input/output combinations are:
+
 ```bash
-printf '%s\n' '# Hi' | ./bamark > output.html
+# File -> stdout
+./bamark README.md
+
+# Stdin -> stdout
+cat README.md | ./bamark                  # Linux, macOS, Git Bash, or WSL
+./bamark                                    # type Markdown, then Ctrl-D
+
+# File -> file
 ./bamark README.md > README.html
+
+# Stdin -> file
+./bamark < README.md > README.html
+```
+
+For other cases:
+
+```bash
 printf '%s\n' '[x](javascript:alert(1))' | ./bamark --safe > safe.html
 ./bamark -- -weird.md > output.html
 ```

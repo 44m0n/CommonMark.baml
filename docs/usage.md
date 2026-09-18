@@ -146,16 +146,37 @@ Usage: bamark [options] [file]
 - I/O errors (including a missing file) exit 1.
 - Input must be UTF-8.
 - Rendered HTML is written to stdout; errors are written to stderr.
-- Save HTML with shell redirection, for example `./bamark README.md > README.html`.
+- Save HTML with shell redirection; `<` and `>` are shell operators, not `bamark` options.
 - Do not redirect output to the input path; the shell truncates it before reading.
+
+### Input and output
+
+`bamark` reads Markdown from the optional `FILE` and writes rendered HTML to stdout. If `FILE` is omitted or is `-`, it reads stdin. On Unix, macOS, Git Bash, and WSL, the bare command reads interactive stdin; type Markdown and press `Ctrl-D` when finished. Native Windows PowerShell and `cmd.exe` should use a file path.
+
+These are the four common input/output combinations:
+
+```bash
+# File -> stdout
+./bamark README.md
+
+# Stdin -> stdout
+cat README.md | ./bamark                  # Linux, macOS, Git Bash, or WSL
+./bamark                                    # type Markdown, then Ctrl-D
+
+# File -> file (shell redirects stdout)
+./bamark README.md > README.html
+
+# Stdin -> file (the shell supplies stdin and redirects stdout)
+./bamark < README.md > README.html
+```
+
+`<` and `>` are shell redirection operators, not `bamark` options. Do not use the same path for input and output, such as `./bamark README.md > README.md`, because the shell can truncate the input before `bamark` reads it.
 
 Default behavior matches CommonMark: raw HTML and `javascript:`, `vbscript:`, `data:`, and `file:` URLs pass through unless `--safe` is set.
 
 ### Examples
 
 ```bash
-printf '%s\n' '# Hi' | ./bamark > output.html
-./bamark README.md > README.html
 printf '%s\n' '[x](javascript:alert(1))' | ./bamark --safe > safe.html
 ./bamark -- -weird.md > output.html
 ```

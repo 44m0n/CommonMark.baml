@@ -49,10 +49,12 @@ function bamark_usage() -> string {
         "Do not redirect output to the input path; it is truncated before reading.",
         "",
         "Examples:",
-        "  bamark README.md > README.html",
-        "  bamark --safe README.md > README.safe.html",
-        "  bamark < README.md > README.html",
-        "  bamark -- -weird.md > output.html",
+        "  File -> stdout:  bamark README.md",
+        "  Stdin -> stdout: bamark  (type Markdown, then Ctrl-D)",
+        "  File -> file:    bamark README.md > README.html",
+        "  Stdin -> file:   bamark < README.md > README.html",
+        "  Safe file output: bamark --safe README.md > README.safe.html",
+        "  Filename starting with '-': bamark -- -weird.md > output.html",
         "",
     ]
         .join("\n")
@@ -262,9 +264,11 @@ test "bamark usage documents invocation and limits" {
     assert.is_true(u.includes("Exit status:"));
     assert.is_true(u.includes("Do not redirect output to the input path"));
     assert.is_true(u.includes("Examples:"));
-    assert.is_true(u.includes("bamark README.md > README.html"));
-    assert.is_true(u.includes("bamark --safe README.md > README.safe.html"));
-    assert.is_true(u.includes("bamark < README.md > README.html"));
-    assert.is_true(u.includes("bamark -- -weird.md > output.html"));
+    assert.is_true(u.includes("File -> stdout:  bamark README.md"));
+    assert.is_true(u.includes("Stdin -> stdout: bamark  (type Markdown, then Ctrl-D)"));
+    assert.is_true(u.includes("File -> file:    bamark README.md > README.html"));
+    assert.is_true(u.includes("Stdin -> file:   bamark < README.md > README.html"));
+    assert.is_true(u.includes("Safe file output: bamark --safe README.md > README.safe.html"));
+    assert.is_true(u.includes("Filename starting with '-': bamark -- -weird.md > output.html"));
     assert.is_true(u.includes("Windows"))
 }
