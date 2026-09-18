@@ -41,6 +41,14 @@ function skip_program_args(args: string[]) -> int {
     if (i < args.length() && !args[i].starts_with("-") && is_baml_runner(args[0])) {
         i += 1;
     }
+    if (
+        i == 1
+            && i < args.length()
+            && !args[i].starts_with("-")
+            && program_base(args[0]).to_lower_case() == program_base(args[i]).to_lower_case()
+    ) {
+        i += 1;
+    }
     i
 }
 
@@ -172,6 +180,21 @@ test "parse_bamark_args skips baml run runner and target" {
     assert.equal(parsed.error, null);
     let win_cli = parse_bamark_args(["C:\\Users\\me\\.baml\\bin\\baml-cli.exe", "cli.bamark", "notes.md"]);
     assert.equal(win_cli.input, "notes.md")
+}
+
+test "parse_bamark_args skips duplicated packed entrypoint before a file" {
+    let parsed = parse_bamark_args(["bamark", "bamark", "README.md"]);
+    assert.equal(parsed.input, "README.md");
+    assert.equal(parsed.error, null);
+    let windows = parse_bamark_args(["C:\\Tools\\BAMARK.EXE", "bamark.exe", "notes.md"]);
+    assert.equal(windows.input, "notes.md");
+    assert.equal(windows.error, null)
+}
+
+test "parse_bamark_args skips duplicated packed entrypoint before stdin" {
+    let parsed = parse_bamark_args(["bamark", "bamark"]);
+    assert.equal(parsed.input, null);
+    assert.equal(parsed.error, null)
 }
 
 test "bamark usage mentions file stdin safe and windows" {
